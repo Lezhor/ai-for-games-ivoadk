@@ -250,3 +250,6 @@ vcpkg_installed/
 
 # End of https://www.toptal.com/developers/gitignore/api/c,cmake,vcpkg,neovim,jetbrains,visualstudiocode,macos
 
+# other
+.cache/
+build/

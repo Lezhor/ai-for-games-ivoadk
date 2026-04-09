@@ -1,0 +1,163 @@
+{
+    "version": 10,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 28,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "gui-release",
+            "displayName": "GUI Release",
+            "binaryDir": "${sourceDir}/build/gui-release",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "ENABLE_LTO": "OFF",
+                "ENABLE_GUI": "ON"
+            },
+            "environment": {}
+        },
+        {
+            "name": "gui-debug",
+            "displayName": "GUI Debug",
+            "binaryDir": "${sourceDir}/build/gui-debug",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_LTO": "OFF",
+                "ENABLE_GUI": "ON",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "environment": {}
+        },
+        {
+            "name": "tui-release",
+            "displayName": "TUI Release",
+            "binaryDir": "${sourceDir}/build/tui-release",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "ENABLE_LTO": "OFF",
+                "ENABLE_TUI": "ON"
+            },
+            "environment": {}
+        },
+        {
+            "name": "tui-debug",
+            "displayName": "TUI Debug",
+            "binaryDir": "${sourceDir}/build/tui-debug",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_LTO": "OFF",
+                "ENABLE_TUI": "ON",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "environment": {}
+        },
+        {
+            "name": "headless-release",
+            "displayName": "Headless Release",
+            "binaryDir": "${sourceDir}/build/headless-release",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "ENABLE_LTO": "ON"
+            },
+            "environment": {}
+        },
+        {
+            "name": "headless-debug",
+            "displayName": "Headless Debug",
+            "binaryDir": "${sourceDir}/build/headless-debug",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_LTO": "OFF",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "environment": {}
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "gui-release",
+            "displayName": "GUI Release",
+            "configurePreset": "gui-release"
+        },
+        {
+            "name": "gui-debug",
+            "displayName": "GUI Debug",
+            "configurePreset": "gui-debug",
+            "verbose": true
+        },
+        {
+            "name": "tui-release",
+            "displayName": "TUI Release",
+            "configurePreset": "tui-release"
+        },
+        {
+            "name": "tui-debug",
+            "displayName": "TUI Debug",
+            "configurePreset": "tui-debug",
+            "verbose": true
+        },
+        {
+            "name": "headless-release",
+            "displayName": "Headless Release",
+            "configurePreset": "headless-release"
+        },
+        {
+            "name": "headless-debug",
+            "displayName": "Headless Debug",
+            "configurePreset": "headless-debug",
+            "verbose": true
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "gui-release",
+            "displayName": "GUI Release",
+            "configurePreset": "gui-release",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error", "stopOnFailure": true }
+        },
+        {
+            "name": "gui-debug",
+            "displayName": "GUI Debug",
+            "configurePreset": "gui-debug",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error", "stopOnFailure": true }
+        },
+        {
+            "name": "tui-release",
+            "displayName": "TUI Release",
+            "configurePreset": "tui-release",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error", "stopOnFailure": true }
+        },
+        {
+            "name": "tui-debug",
+            "displayName": "TUI Debug",
+            "configurePreset": "tui-debug",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error", "stopOnFailure": true }
+        },
+        {
+            "name": "headless-release",
+            "displayName": "Headless Release",
+            "configurePreset": "headless-release",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error", "stopOnFailure": true }
+        },
+        {
+            "name": "headless-debug",
+            "displayName": "Headless Debug",
+            "configurePreset": "headless-debug",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error", "stopOnFailure": true }
+        }
+    ]
+}

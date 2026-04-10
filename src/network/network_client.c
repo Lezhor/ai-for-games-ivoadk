@@ -91,10 +91,12 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     uint8_t seed_bytes[4];
     recv_exact(sock, seed_bytes, 4);
 
-    int32_t random_seed = (int32_t)(seed_bytes[0]) |
-                          ((int32_t)(seed_bytes[1]) << 8) |
-                          ((int32_t)(seed_bytes[2]) << 16) |
-                          ((int32_t)(seed_bytes[3]) << 24);
+    uint32_t random_seed_unsigned = (uint32_t)(seed_bytes[0]) |
+                                    ((uint32_t)(seed_bytes[1]) << 8) |
+                                    ((uint32_t)(seed_bytes[2]) << 16) |
+                                    ((uint32_t)(seed_bytes[3]) << 24);
+
+    int32_t random_seed = (int32_t)random_seed_unsigned;
 
     // Handshake complete!
     // Build the NetworkClient object

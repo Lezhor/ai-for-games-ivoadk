@@ -1,6 +1,7 @@
 #include "network/network_client.h"
 #include "utils/array_utils.h"
 #include "utils/lcg.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,7 +115,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     printf("--- Connected to Server ---\n");
     printf("Player Number : %d\n", out_client->player_number);
     printf("Time Limit    : %d seconds\n", out_client->time_limit_sec);
-    printf("Seed Received : %llu\n", random_seed);
+    printf("Seed Received : %" PRIu64 "\n", random_seed);
 }
 
 void network_client_cleanup(NetworkClient* client) {

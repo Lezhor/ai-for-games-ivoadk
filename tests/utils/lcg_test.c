@@ -37,7 +37,7 @@ static char* test_lcg_with_csv_vectors(void) {
     while (fgets(line, sizeof(line), file)) {
         line_num++;
         char op[32];
-        uint64_t expected;
+        int64_t expected;
 
         // Parse format: "operation, expected_value"
         if (sscanf(line, "%31[^,], %" SCNd64, op, &expected) == 2) {

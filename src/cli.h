@@ -1,11 +1,7 @@
 #ifndef CLI_H
 #define CLI_H
 
-typedef struct {
-    const char* host;
-    int port;
-    const char* agent_name;
-} AgentConfig;
+#include "network/network_client.h"
 
 AgentConfig parse_args(int argc, char* argv[]);
 

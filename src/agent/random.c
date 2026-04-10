@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "cli.h"
+#include "network/network_client.h"
 
 /**
  * minimal test
@@ -14,6 +15,10 @@ int main(int argc, char *argv[]) {
     printf("Target Port: %d\n", config.port);
     printf("Agent Name: %s\n", config.agent_name);
     printf("Build system and arguments verified successfully!\n");
+
+    network_client_connect(&config);
+
+    printf("Game Started!");
 
     return EXIT_SUCCESS;
 }

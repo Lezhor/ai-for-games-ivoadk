@@ -113,11 +113,12 @@ endif()
 # --------------------------------------------------------
 # Core Files
 # --------------------------------------------------------
-file(GLOB_RECURSE CORE_FILES 
-    "${CMAKE_SOURCE_DIR}/src/*.c"
+file(GLOB CORE_ROOT_FILES "${CMAKE_SOURCE_DIR}/src/*.c")
+file(GLOB_RECURSE CORE_SUB_FILES
     "${CMAKE_SOURCE_DIR}/src/network/*.c"
     "${CMAKE_SOURCE_DIR}/src/utils/*.c"
 )
+set(CORE_FILES ${CORE_ROOT_FILES} ${CORE_SUB_FILES})
 
 # --------------------------------------------------------
 # Agent Executables

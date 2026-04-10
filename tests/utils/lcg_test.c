@@ -40,7 +40,7 @@ static char* test_lcg_with_csv_vectors(void) {
         long long expected;
 
         // Parse format: "operation, expected_value"
-        if (sscanf(line, "%31[^,], %" PRId64, op, &expected) == 2) {
+        if (sscanf(line, "%31[^,], %" SCNd64, op, &expected) == 2) {
 
             if (strcmp(op, "seed") == 0) {
                 lcg_set_seed(&rng, (uint64_t)expected);
@@ -66,7 +66,7 @@ static char* test_lcg_with_csv_vectors(void) {
             else if (strcmp(op, "long") == 0) {
                 int64_t res = lcg_next_long(&rng);
                 if (res != (int64_t)expected) {
-                    snprintf(error_msg, sizeof(error_msg), "Line %d: Expected long %" PRId64 ", got %" PRId64 "", line_num, expected, (long long)res);
+                    snprintf(error_msg, sizeof(error_msg), "Line %d: Expected long %" PRId64 ", got %" PRId64 "", line_num, expected, (int64_t)res);
                     fclose(file);
                     return error_msg;
                 }

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "cli.h"
@@ -14,11 +15,13 @@ int main(int argc, char *argv[]) {
     printf("Target Host: %s\n", config.host);
     printf("Target Port: %d\n", config.port);
     printf("Agent Name: %s\n", config.agent_name);
-    printf("Build system and arguments verified successfully!\n");
 
-    network_client_connect(&config);
+    NetworkClient* client = calloc(1, sizeof(NetworkClient));
+    assert(client != NULL && "Failed to allocate NetworkClient");
 
-    printf("Game Started!");
+    network_client_connect(&config, client);
+
+    printf("Game Started as player %d!", client->player_number);
 
     return EXIT_SUCCESS;
 }

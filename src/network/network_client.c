@@ -20,7 +20,7 @@ static void recv_exact(int sock, uint8_t* buffer, size_t length) {
     }
 }
 
-NetworkClient* network_client_connect(const AgentConfig* config) {
+void network_client_connect(const AgentConfig* config, NetworkClient* out_client) {
     assert(config != NULL);
     assert(config->host != NULL);
     assert(config->agent_name != NULL);
@@ -98,28 +98,23 @@ NetworkClient* network_client_connect(const AgentConfig* config) {
     // Handshake complete!
     // Build the NetworkClient object
 
-    NetworkClient* client = calloc(1, sizeof(NetworkClient));
-    assert(client != NULL && "Failed to allocate NetworkClient");
+    out_client->socket_fd = sock;
+    out_client->player_number = player_num;
+    out_client->time_limit_sec = time_limit;
+    out_client->latency_ms = latency;
 
-    client->socket_fd = sock;
-    client->player_number = player_num;
-    client->time_limit_sec = time_limit;
-    client->latency_ms = latency;
-
-    lcg_set_seed(&client->rng, (uint64_t)random_seed);
+    lcg_set_seed(&out_client->rng, (uint64_t)random_seed);
 
     for (int i = 0; i < 19; i++) {
-        client->board_heights[i] = (board_height_t)(i + 1);
+        out_client->board_heights[i] = (board_height_t)(i + 1);
     }
 
-    board_height_array_shuffle(client->board_heights, 19, &client->rng);
+    board_height_array_shuffle(out_client->board_heights, 19, &out_client->rng);
 
     printf("--- Connected to Server ---\n");
-    printf("Player Number : %d\n", client->player_number);
-    printf("Time Limit    : %d seconds\n", client->time_limit_sec);
+    printf("Player Number : %d\n", out_client->player_number);
+    printf("Time Limit    : %d seconds\n", out_client->time_limit_sec);
     printf("Seed Received : %llu\n", random_seed);
-
-    return client;
 }
 
 void network_client_cleanup(NetworkClient* client) {

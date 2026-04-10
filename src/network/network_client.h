@@ -23,11 +23,19 @@ typedef struct NetworkClient {
 } NetworkClient;
 
 /**
- * Initial Handshake with jar server.
- * 1. receive 0x01 from Server
- * 2. ... // TODO: complete Protocol Description
+ * Connects to the IVOADK server / initial handshake protocol and game init.
+ * * Protocol Flow:
+ * 1. Client sends 0x01 (Ping).
+ * 2. Server replies with 0x01 (If different, version mismatch/crash).
+ * 3. Client sends Team Name string followed by '\n'.
+ * 4. Client sends Base64 encoded 256x256 PNG Logo followed by '\n'.
+ * 5. Server replies with 1 byte (Config).
+ * - Lowest 2 bits = Player Number.
+ * - Remaining bits = Time Limit in seconds.
+ * 6. Server replies with 4 bytes (Random Seed in Little-Endian order).
+ * - using the seed the client shuffles the board.
  */
-NetworkClient* network_client_connect(const AgentConfig* config);
+void network_client_connect(const AgentConfig* config, NetworkClient* out_client);
 
 /**
  * Closes connection and cleans socket

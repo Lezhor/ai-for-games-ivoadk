@@ -6,7 +6,7 @@ import java.util.Random;
 public class LcgTestVectorGenerator implements AutoCloseable {
 
     public static void main(String[] args) {
-        String fileName = args.length > 0 ? args[0] : "tests/fixtures/lcg_vectors.csv";
+        String fileName = args.length > 0 ? args[0] : "tests/fixtures/lcg_test_vectors.csv";
         try (LcgTestVectorGenerator gen = new LcgTestVectorGenerator(fileName)) {
 
             gen.setSeed(12345L);

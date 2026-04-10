@@ -91,10 +91,10 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     uint8_t seed_bytes[4];
     recv_exact(sock, seed_bytes, 4);
 
-    uint64_t random_seed = (uint64_t)(seed_bytes[0]) |
-                          ((uint64_t)(seed_bytes[1]) << 8) |
-                          ((uint64_t)(seed_bytes[2]) << 16) |
-                          ((uint64_t)(seed_bytes[3]) << 24);
+    int32_t random_seed = (int32_t)(seed_bytes[0]) |
+                          ((int32_t)(seed_bytes[1]) << 8) |
+                          ((int32_t)(seed_bytes[2]) << 16) |
+                          ((int32_t)(seed_bytes[3]) << 24);
 
     // Handshake complete!
     // Build the NetworkClient object
@@ -115,7 +115,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     printf("--- Connected to Server ---\n");
     printf("Player Number : %d\n", out_client->player_number);
     printf("Time Limit    : %d seconds\n", out_client->time_limit_sec);
-    printf("Seed Received : %" PRIu64 "\n", random_seed);
+    printf("Seed Received : %d\n", random_seed);
 }
 
 void network_client_cleanup(NetworkClient* client) {

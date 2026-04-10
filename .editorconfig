@@ -1,0 +1,22 @@
+root = true
+
+# All files
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+# Forcing 4 spaces: C, Headers, Json, Python
+[*.{c,h,json,py}]
+indent_style = space
+indent_size = 4
+
+# Insert final New Line for C-files and Headers
+[*.{c,h}]
+insert_final_newline = true
+
+# Forcing 2 spaces: Yaml,
+[*.{md,yaml,yml,sh}]
+indent_size = 2

@@ -3,7 +3,7 @@
 set -e
 
 preset="${1:-headless-debug}"
-agent="${2:-random}"
+agent="${2:-randomizer}"
 
 if [ "$#" -gt 0 ]; then
   # pop the preset argument

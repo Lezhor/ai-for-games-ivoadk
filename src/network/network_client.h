@@ -22,6 +22,11 @@ typedef struct NetworkClient {
     board_height_t board_heights[19];
 } NetworkClient;
 
+typedef struct Move {
+    uint8_t player;
+    uint8_t index;
+} Move;
+
 /**
  * Connects to the IVOADK server / initial handshake protocol and game init.
  * * Protocol Flow:
@@ -36,6 +41,9 @@ typedef struct NetworkClient {
  * - using the seed the client shuffles the board.
  */
 void network_client_connect(const AgentConfig* config, NetworkClient* out_client);
+
+int network_client_receive_move(NetworkClient* client, Move* out_move);
+void network_client_send_move(NetworkClient* client, uint8_t move);
 
 /**
  * Closes connection and cleans socket

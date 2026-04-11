@@ -175,7 +175,8 @@ function(add_agent_executable AGENT_NAME)
 endfunction()
 
 # Register your Agents here!
-add_agent_executable(random)
+add_agent_executable(idler)
+add_agent_executable(randomizer)
 # TODO: add_agent_executable(human)
 # TODO: add_agent_executable(ai_agent)
 

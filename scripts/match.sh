@@ -20,6 +20,7 @@ show_help() {
     echo "  --seed <num>    Set a specific game seed (default: random)"
     echo "  --time <sec>    Set the server move time limit (default: 8)"
     echo "  --port <num>    Set the server port (default: 22135)"
+    echo "  --no-server     Don't start any server"
     echo "  --help          Show this help message"
     echo ""
     echo -e "${YELLOW}Arguments (Cascading):${NC}"
@@ -34,7 +35,7 @@ show_help() {
     echo "  - Background agents are always forced to 'headless' mode."
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
-    echo "  ./scripts/play_match.sh                          # 3x Headless Random bots"
+    echo "  ./scripts/play_match.sh                          # 3x Headless Randomizer bots"
     echo "  ./scripts/play_match.sh gui-debug human smart    # Human vs 2x Smart bots (GUI)"
     echo "  ./scripts/play_match.sh --seed 12345 smart       # 3x Smart bots with fixed seed"
     echo "  ./scripts/play_match.sh gui-debug human smart random # Mix of all three"
@@ -45,6 +46,7 @@ show_help() {
 # Flag Parsing
 # ---------------------------------------------------------
 # Default values
+START_SERVER=1
 HOST="127.0.0.1"
 PORT="22135"
 SEED=$((RANDOM * RANDOM))
@@ -56,6 +58,7 @@ while [[ "$1" == --* ]] || [[ "$1" == "help" ]]; do
         --seed) SEED="$2"; shift 2 ;;
         --time) TIME_LIMIT="$2"; shift 2 ;;
         --port) PORT="$2"; shift 2 ;;
+        --no-server) START_SERVER=0; shift ;;
         *)
             echo -e "${RED}Unknown flag: $1${NC}"
             exit 1
@@ -69,7 +72,7 @@ done
 preset="${1:-headless-debug}"
 if [ "$#" -gt 0 ]; then shift; fi
 
-agent1="${1:-random}"
+agent1="${1:-randomizer}"
 if [ "$#" -gt 0 ]; then shift; fi
 
 agent2="${1:-$agent1}"
@@ -107,7 +110,11 @@ echo "=========================================================="
 echo -e " Launching Match"
 echo -e "   Seed       : ${SEED}"
 echo -e "   Time Limit : ${TIME_LIMIT}s"
+if [[ ${START_SERVER} -gt 0 ]]; then
 echo -e "   Server     : ${HOST}:${PORT}"
+else
+echo -e "   Server     : [Disabled]"
+fi
 echo -e "   Main       : ${YELLOW}$agent1${NC} ($preset) [Foreground]"
 echo -e "   Bot 2      : ${YELLOW}$agent2${NC} ($bg_preset) [Hidden]"
 echo -e "   Bot 3      : ${YELLOW}$agent3${NC} ($bg_preset) [Hidden]"
@@ -115,9 +122,10 @@ echo "=========================================================="
 
 # 1. Boot the Java Server in the background
 # UPDATED: Points to the new server/lib/native location!
-java -Djava.library.path=./server/lib/native -Djava.awt.headless=true -jar ./server/ivoadk.jar headless quiet seed="$SEED" time="$TIME_LIMIT" > /dev/null 2>&1 &
-
-sleep 0.5
+if [[ ${START_SERVER} -gt 0 ]]; then
+    java -Djava.library.path=./server/lib/native -Djava.awt.headless=true -jar ./server/ivoadk.jar headless quiet seed="$SEED" time="$TIME_LIMIT" > /dev/null 2>&1 &
+    sleep 0.5
+fi
 
 # 2. Launch the hidden bots
 "$EXE_BG2" "$HOST" "$PORT" "Bot2_${agent2}" > /dev/null 2>&1 &

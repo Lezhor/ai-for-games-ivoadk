@@ -11,6 +11,10 @@
 #include <sys/time.h>
 #include <assert.h>
 
+#define RESPONSE_MOVE_NULL    201
+#define RESPONSE_KICK_INVALID 207
+#define RESPONSE_KICK_TIMEOUT 208
+
 #define DUMMY_LOGO_B64 "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjIGi0AAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
 
 static void recv_exact(int sock, uint8_t* buffer, size_t length) {
@@ -118,6 +122,42 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     printf("Player Number : %d\n", out_client->player_number);
     printf("Time Limit    : %d seconds\n", out_client->time_limit_sec);
     printf("Seed Received : %d\n", random_seed);
+}
+
+// true if move received. false = its this players turn
+int network_client_receive_move(NetworkClient* client, Move* out_move) {
+    uint8_t byte1;
+    ssize_t bytes_read = recv(client->socket_fd, &byte1, 1, MSG_WAITALL);
+
+    if (bytes_read <= 0) {
+        fprintf(stderr, "\nFatal Error: Connection closed. Game Over.");
+        exit(EXIT_FAILURE);
+    }
+
+    if (byte1 == RESPONSE_MOVE_NULL) {
+        return 0; // its this players turn
+    } else if (byte1 == RESPONSE_KICK_INVALID) {
+        fprintf(stderr, "\nNetwork Error: You got kicked because of invalid move");
+        exit(EXIT_FAILURE);
+    } else if (byte1 == RESPONSE_KICK_TIMEOUT) {
+        fprintf(stderr, "\nNetwork Error: You got kicked because of timeout");
+        exit(EXIT_FAILURE);
+    }
+
+    uint8_t byte2;
+    recv_exact(client->socket_fd, &byte2, 1);
+
+    out_move->player = byte1;
+    out_move->index = byte2;
+
+    return 1;
+}
+
+void network_client_send_move(NetworkClient* client, uint8_t move) {
+    if (send(client->socket_fd, &move, 1, 0) != 1) {
+        perror("Network Error: Failed to send move");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void network_client_cleanup(NetworkClient* client) {

@@ -117,6 +117,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     }
 
     board_height_array_shuffle(out_client->board_heights, 19, &out_client->rng);
+    board_height_calculate_inverse_map(out_client->board_heights, out_client->board_inverse_map, 19);
 
     printf("--- Connected to Server ---\n");
     printf("Player Number : %d\n", out_client->player_number);

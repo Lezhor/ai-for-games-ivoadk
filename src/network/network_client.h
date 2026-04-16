@@ -1,7 +1,7 @@
 #ifndef NETWORK_CLIENT_H
 #define NETWORK_CLIENT_H
 
-#include "board.h"
+#include "game/board.h"
 #include "utils/lcg.h"
 
 typedef struct AgentConfig {
@@ -20,6 +20,7 @@ typedef struct NetworkClient {
     int latency_ms;
 
     board_height_t board_heights[19];
+    uint8_t board_inverse_map[19]; // value of index i should be index in board_heights where value is i
 } NetworkClient;
 
 typedef struct Move {

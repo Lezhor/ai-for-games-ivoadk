@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "minunit.h"
-#include "board.h"
+#include "game/board.h"
 #include "utils/lcg.h"
 #include "utils/array_utils.h"
 
@@ -92,6 +92,23 @@ static char* test_shuffle_complex_2(void) {
     return 0;
 }
 
+static char* test_inverse_map(void) {
+    board_height_t array[19] = {
+        5, 12, 0, 18, 3, 7, 1, 9, 14, 17, 2, 8, 11, 4, 15, 6, 10, 16, 13
+    };
+
+    board_height_t expected[19] = {
+        2, 6, 10, 4, 13, 0, 15, 5, 11, 7, 16, 12, 1, 18, 8, 14, 17, 9, 3
+    };
+
+    board_height_t actual[19] = {0};
+
+    board_height_calculate_inverse_map(array, actual, 19);
+
+    mu_assert("Error: Inverse map does not match expected output!", arrays_equal(expected, actual, 19));
+    return 0;
+}
+
 
 // --------------------------------------------------------
 // Test Runner
@@ -103,6 +120,7 @@ static char* test_all(void) {
     mu_run_test(test_shuffle_all_same);
     mu_run_test(test_shuffle_complex_1);
     mu_run_test(test_shuffle_complex_2);
+    mu_run_test(test_inverse_map);
 
     return 0;
 }

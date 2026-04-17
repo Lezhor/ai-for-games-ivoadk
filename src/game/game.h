@@ -57,7 +57,7 @@ static inline void game_set_player_inactive(GameState* game, uint8_t player) {
     game->v &= ~((uint64_t)1 << (37 + player));
 }
 
-void game_apply_move(const GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move);
+void game_apply_move(GameState* game, uint8_t player, uint8_t move);
 void game_apply_triangles(const GameSettings* game_settings, GameState* game);
 void game_take_move(const GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move);
 

@@ -12,7 +12,7 @@
             "binaryDir": "${sourceDir}/build/gui-release",
             "generator": "Ninja",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_BUILD_TYPE": "Release",
                 "ENABLE_LTO": "OFF",
                 "ENABLE_GUI": "ON"
             },
@@ -37,7 +37,7 @@
             "binaryDir": "${sourceDir}/build/tui-release",
             "generator": "Ninja",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_BUILD_TYPE": "Release",
                 "ENABLE_LTO": "OFF",
                 "ENABLE_TUI": "ON"
             },
@@ -62,7 +62,7 @@
             "binaryDir": "${sourceDir}/build/headless-release",
             "generator": "Ninja",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "ENABLE_LTO": "ON"
             },

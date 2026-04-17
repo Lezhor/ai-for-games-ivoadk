@@ -16,12 +16,11 @@ static char* test_game_turn_advance(void) {
 
         for (uint8_t turn = 1; turn <= 3; turn++) {
 
-
             GameState state = {
-                .player_turn=turn,
-                .p1_active=p1,
-                .p2_active=p2,
-                .p3_active=p3
+                .player_turn=(uint64_t)(turn & 3),
+                .p1_active=(uint64_t)(p1 & 1),
+                .p2_active=(uint64_t)(p2 & 1),
+                .p3_active=(uint64_t)(p3 & 1)
             };
 
             // // actually we want to test even if current player is inactive - cuz he might have gone inactive but the turn still needs to be advanced
@@ -49,10 +48,10 @@ static char* test_game_turn_set(void) {
         for (uint8_t target = 1; target <= 3; target++) {
 
             GameState state = {
-                .player_turn=turn,
-                .p1_active=1,
-                .p2_active=1,
-                .p3_active=1
+                .player_turn=(uint64_t)(turn & 3),
+                .p1_active=(uint64_t)1,
+                .p2_active=(uint64_t)1,
+                .p3_active=(uint64_t)1
             };
 
             // Reference: inactivate skipped players

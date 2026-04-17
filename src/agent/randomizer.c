@@ -26,6 +26,10 @@ int main(int argc, char *argv[]) {
 
     game_init_settings(client.seed, &game_settings);
 
+    char game_str[128];
+    game_to_string(&game, game_str);
+    printf("Initial State: %s\n", game_str);
+
     lcg_t rng;
     // added +player cuz else all randomizers have the same rng object :/
     lcg_set_seed(&rng, (uint64_t)(client.seed + client.player_number));

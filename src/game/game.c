@@ -54,6 +54,7 @@ void game_take_move(const GameSettings* game_settings, GameState* game, uint8_t 
     // TODO: if some players were skipped set them to inactive
     game_apply_move(game, player, move);
     game_apply_triangles(game_settings, game);
+    // TODO: increase turn to next active player (might be self)
 }
 
 int game_finished_condition(GameState* game) {

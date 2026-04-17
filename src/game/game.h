@@ -74,4 +74,8 @@ uint8_t game_network_move_index_to_net(GameSettings* game_settings, uint8_t move
 int game_network_receive_move(GameSettings* game_settings, NetworkClient* client, GameState* game);
 void game_network_send_move(GameSettings* game_settings, NetworkClient* client, uint8_t move);
 
+// ui & strings
+
+void game_to_string(const GameState* game, char* out_str);
+
 #endif

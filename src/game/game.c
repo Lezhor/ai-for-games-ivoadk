@@ -21,7 +21,7 @@ void game_init_settings(int32_t seed, GameSettings* out_game_settings) {
  * applies single move without calculating scores etc.
  */
 void game_apply_move(GameState* game, uint8_t player, uint8_t move) {
-    assert(move >= 0 && move < BOARD_SIZE && "illegal move in game_apply_move()");
+    assert(move < BOARD_SIZE && "illegal move in game_apply_move()");
     assert(player >= 1 && player <= 3 && "illegal player value in game_apply_move()");
     assert(game_is_player_active(game, player) && "inactive player tried to apply move in game_apply_move()");
     assert(((game->v & ((uint64_t)3 << (move * 2))) == 0) && "cell already taken in game_apply_move()");
@@ -44,7 +44,7 @@ void game_apply_triangles(const GameSettings* game_settings, GameState* game) {
  */
 void game_take_move(const GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move) {
     // move == BOARD_SIZE is fine cuz its considered an intentionally illegal move
-    assert(move >= 0 && move <= BOARD_SIZE && "move out of bounds in game_take_move");
+    assert(move <= BOARD_SIZE && "move out of bounds in game_take_move");
     assert(game_is_player_active(game, player) && "inactive player tried to take move in game_take_move()");
     if (move == BOARD_SIZE) {
         // intentionally played illegal move

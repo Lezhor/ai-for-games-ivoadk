@@ -5,7 +5,7 @@
 #include "game/game.h"
 
 uint8_t game_network_player_from_net(const NetworkClient* client, uint8_t player) {
-    assert(player >= 0 && player <= 2 && "player has to be between 0 and 2 in from_network_player");
+    assert(player <= 2 && "player has to be between 0 and 2 in from_network_player");
     // return (uint8_t)((player + 3 - client->player_number) % 3) + 1;
     (void)client;
     return player + 1;
@@ -18,13 +18,13 @@ uint8_t game_network_player_to_net(const NetworkClient* client, uint8_t player) 
     return player - 1;
 }
 uint8_t game_network_move_index_from_net(const GameSettings* game_settings, uint8_t move) {
-    assert(move >= 0 && move < BOARD_SIZE && "move out of bounds in game_network_move_index_from_net()");
+    assert(move < BOARD_SIZE && "move out of bounds in game_network_move_index_from_net()");
     return game_settings->board_heights[move];
 }
 
 uint8_t game_network_move_index_to_net(const GameSettings* game_settings, uint8_t move) {
     // note that move == BOARD_SIZE is allowed for intentionally playing illegal move
-    assert(move >= 0 && move <= BOARD_SIZE && "move out of bounds in game_network_move_index_to_net()");
+    assert(move <= BOARD_SIZE && "move out of bounds in game_network_move_index_to_net()");
     return move == BOARD_SIZE ? BOARD_SIZE : game_settings->board_inverse_map[move];
 }
 
@@ -45,7 +45,7 @@ int game_network_receive_move(const GameSettings* game_settings, const NetworkCl
 }
 
 void game_network_send_move(const GameSettings* game_settings, const NetworkClient* client, uint8_t move) {
-    assert(move >= 0 && move < BOARD_SIZE);
+    assert(move < BOARD_SIZE);
     move = game_network_move_index_to_net(game_settings, move);
     network_client_send_move(client, move);
 }

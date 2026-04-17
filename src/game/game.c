@@ -85,7 +85,7 @@ void game_turn_set(GameState* game, uint8_t player) {
     uint64_t skip_mask = (inactivate_lut >> (index * 4)) & 0xF;
     game->v &= ~(skip_mask << 38);
 
-    game->player_turn = player & 3;
+    game->player_turn = (uint64_t)player;
 }
 
 /**
@@ -116,7 +116,7 @@ void game_turn_advance(GameState* game) {
     // 36 instead of 38 - already shifted << 2 to not shift twice :)
     uint64_t active_shifted = (game->v >> 36) & 0x1C;
     uint64_t index = active_shifted | game->player_turn;
-    game->player_turn = (next_turn_lut >> (index * 2)) & 3;
+    game->player_turn = (uint64_t)((next_turn_lut >> (index * 2)) & 3);
 }
 
 int game_finished_condition(GameState* game) {

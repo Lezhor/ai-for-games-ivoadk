@@ -3,6 +3,7 @@
 
 #include "game/board.h"
 #include "network/network_client.h"
+#include <assert.h>
 #include <stdint.h>
 
 typedef union {
@@ -37,10 +38,28 @@ typedef struct {
 #define GAME_MASK_PLAYER_TURN      (uint64_t) 0x0000060000000000
 #define GAME_MASK_SCORES           (uint64_t) 0xFFFFF8C000000000
 
+// TODO: define init game state value. all players active, 0 score, 1st players turn, board empty
+
 void game_init_settings(int32_t seed, GameSettings* out_game_settings);
 
-void game_apply_triangles(GameSettings* game_settings, GameState* game);
+static inline int game_is_player_active(const GameState* game, uint8_t player) {
+    assert(player >= 0 && player <= 2 && "player out of bounds in game_is_player_active()");
+    return (game->v >> (37 + player)) & 1;
+}
+
+static inline void game_set_player_active(GameState* game, uint8_t player) {
+    assert(player >= 0 && player <= 2 && "player out of bounds in game_set_player_inactive()");
+    game->v |= (uint64_t)1 << (37 + player);
+}
+
+static inline void game_set_player_inactive(GameState* game, uint8_t player) {
+    assert(player >= 0 && player <= 2 && "player out of bounds in game_set_player_inactive()");
+    game->v &= ~((uint64_t)1 << (37 + player));
+}
+
 void game_apply_move(GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move);
+void game_apply_triangles(GameSettings* game_settings, GameState* game);
+void game_take_move(GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move);
 
 int game_finished_condition(GameState* game);
 uint8_t game_get_winner(GameState* game, uint8_t* out_winner_score);

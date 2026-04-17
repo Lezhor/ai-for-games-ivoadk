@@ -40,7 +40,7 @@ int game_network_receive_move(GameSettings* game_settings, NetworkClient* client
     }
     received_move.player = game_network_player_from_net(client, received_move.player);
     received_move.index = game_network_move_index_from_net(game_settings, received_move.index);
-    game_apply_move(game_settings, game, received_move.player, received_move.index);
+    game_take_move(game_settings, game, received_move.player, received_move.index);
     return 1;
 }
 

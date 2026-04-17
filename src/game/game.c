@@ -1,4 +1,3 @@
-
 #include "game/game.h"
 #include "game/board.h"
 #include "utils/array_utils.h"
@@ -18,9 +17,22 @@ void game_init_settings(int32_t seed, GameSettings* out_game_settings) {
     // TODO: init triangles in correct order
 }
 
+/**
+ * applies single move without calculating scores etc.
+ */
+void game_apply_move(GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move) {
+    (void)game_settings;
+    (void)game;
+    (void)player;
+    (void)move;
+    assert(game_is_player_active(game, player) && "inactive player tried to apply move in game_apply_move()");
+    // TODO: implement apply move
+}
+
 void game_apply_triangles(GameSettings* game_settings, GameState* game) {
     (void)game_settings;
     (void)game;
+    // TODO: implement apply triangles
 }
 
 /**
@@ -31,18 +43,17 @@ void game_apply_triangles(GameSettings* game_settings, GameState* game) {
  * If the next player is NOT the one whose turn its rn it marks the skipped player(s)
  * as inactive because they probably got kicked.
  */
-void game_apply_move(GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move) {
-    (void)game_settings;
-    (void)game;
-    (void)player;
-    (void)move;
-    // TODO: assert that player is active
+void game_take_move(GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move) {
+    // move == BOARD_SIZE is fine cuz its considered an intentionally illegal move
+    assert(move >= 0 && move <= BOARD_SIZE && "move out of bounds in game_take_move");
+    assert(game_is_player_active(game, player) && "inactive player tried to take move in game_take_move()");
     if (move == BOARD_SIZE) {
         // intentionally played illegal move
-        // TODO: set player to inactive
+        game_set_player_inactive(game, player);
         return;
     }
-    // TODO: apply move
+    // TODO: if some players were skipped set them to inactive
+    game_apply_move(game_settings, game, player, move);
     game_apply_triangles(game_settings, game);
 }
 

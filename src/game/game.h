@@ -77,5 +77,6 @@ void game_network_send_move(const GameSettings* game_settings, const NetworkClie
 // ui & strings
 
 void game_to_string(const GameState* game, char* out_str);
+void game_to_2d_board_string(const GameSettings* game_settings, const GameState* game, char* out_str);
 
 #endif

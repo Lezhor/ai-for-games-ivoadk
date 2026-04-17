@@ -30,6 +30,12 @@ int main(int argc, char *argv[]) {
     char game_str[128];
     game_to_string(&game, game_str);
 
+#ifdef USE_TUI
+    char board_str[256];
+    game_to_2d_board_string(&game_settings, &game, board_str);
+    printf("Initial Board:\n%s\n", board_str);
+#endif /* ifdef USE_TUI */
+
     lcg_t rng;
     // added +player cuz else all randomizers have the same rng object :/
     lcg_set_seed(&rng, (uint64_t)(client.seed + client.player_number));
@@ -41,6 +47,10 @@ int main(int argc, char *argv[]) {
         while (game_network_receive_move(&game_settings, &client, &game)) {
             game_to_string(&game, game_str);
             printf("Move %3d: %s\n", game_get_move_count(&game), game_str);
+#ifdef USE_TUI
+            game_to_2d_board_string(&game_settings, &game, board_str);
+            printf("%s\n", board_str);
+#endif /* ifdef USE_TUI */
         }
         // random move
         // TODO: random empty cell

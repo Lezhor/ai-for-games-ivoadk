@@ -24,7 +24,7 @@ void game_apply_move(GameState* game, uint8_t player, uint8_t move) {
     assert(move >= 0 && move < BOARD_SIZE && "illegal move in game_apply_move()");
     assert(player >= 1 && player <= 3 && "illegal player value in game_apply_move()");
     assert(game_is_player_active(game, player) && "inactive player tried to apply move in game_apply_move()");
-    assert((game->v & ((uint64_t)3 << (move * 2))) == 0 && "cell already taken in game_apply_move()");
+    assert(((game->v & ((uint64_t)3 << (move * 2))) == 0) && "cell already taken in game_apply_move()");
     game->v |= (uint64_t)player << (move * 2);
 }
 

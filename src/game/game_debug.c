@@ -22,17 +22,23 @@ void game_to_string(const GameState* game, char* out_str) {
         first = 0;
     }
     if (game->p2_active) {
-        if (!first) { out_str[pos++] = ','; }
+        if (!first) {
+            out_str[pos++] = ',';
+            out_str[pos++] = ' ';
+        }
         pos += snprintf(out_str + pos, 128 - (size_t)pos, "p2");
         first = 0;
     }
     if (game->p3_active) {
-        if (!first) { out_str[pos++] = ','; }
+        if (!first) {
+            out_str[pos++] = ',';
+            out_str[pos++] = ' ';
+        }
         pos += snprintf(out_str + pos, 128 - (size_t)pos, "p3");
     }
     out_str[pos++] = '}';
 
-    pos += snprintf(out_str + pos, 128 - (size_t)pos, " turn=p%u scores={p1:%u,p2:%u,p3:%u}",
+    pos += snprintf(out_str + pos, 128 - (size_t)pos, " turn=p%u scores={ p1:%3u, p2:%3u, p3:%3u }",
                    (unsigned int)game->player_turn,
                    (unsigned int)game->p1_score,
                    (unsigned int)game->p2_score,

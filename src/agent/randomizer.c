@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "cli.h"
+#include "game/board.h"
 #include "game/game.h"
 #include "network/network_client.h"
 #include "utils/lcg.h"
@@ -28,7 +29,6 @@ int main(int argc, char *argv[]) {
 
     char game_str[128];
     game_to_string(&game, game_str);
-    printf("Initial State: %s\n", game_str);
 
     lcg_t rng;
     // added +player cuz else all randomizers have the same rng object :/
@@ -36,19 +36,17 @@ int main(int argc, char *argv[]) {
 
     // game loop
 
-    Move move;
+    uint8_t move;
     while (1) {
-        while (network_client_receive_move(&client, &move)) {
-            printf("Received move %u from player %u\n", move.index, move.player);
-            // TODO: update board
+        while (game_network_receive_move(&game_settings, &client, &game)) {
+            game_to_string(&game, game_str);
+            printf("Move %3d: %s\n", game_get_move_count(&game), game_str);
         }
-        // send move
-        move.index = (uint8_t)lcg_next_int_n(&rng, 19);
-        printf("Sending move %u\n", move.index);
-        network_client_send_move(&client, move.index);
+        // random move
+        // TODO: random empty cell
+        move = (uint8_t)lcg_next_int_n(&rng, BOARD_SIZE);
+        game_network_send_move(&game_settings, &client, move);
     }
-
-    printf("Game Started as player %d!", client.player_number);
 
     return EXIT_SUCCESS;
 }

@@ -43,17 +43,17 @@ typedef struct {
 void game_init_settings(int32_t seed, GameSettings* out_game_settings);
 
 static inline int game_is_player_active(const GameState* game, uint8_t player) {
-    assert(player >= 0 && player <= 2 && "player out of bounds in game_is_player_active()");
+    assert(player >= 1 && player <= 3 && "player out of bounds in game_is_player_active()");
     return (game->v >> (37 + player)) & 1;
 }
 
 static inline void game_set_player_active(GameState* game, uint8_t player) {
-    assert(player >= 0 && player <= 2 && "player out of bounds in game_set_player_inactive()");
+    assert(player >= 1 && player <= 3 && "player out of bounds in game_set_player_inactive()");
     game->v |= (uint64_t)1 << (37 + player);
 }
 
 static inline void game_set_player_inactive(GameState* game, uint8_t player) {
-    assert(player >= 0 && player <= 2 && "player out of bounds in game_set_player_inactive()");
+    assert(player >= 1 && player <= 3 && "player out of bounds in game_set_player_inactive()");
     game->v &= ~((uint64_t)1 << (37 + player));
 }
 
@@ -67,12 +67,12 @@ int game_get_move_count(GameState* game);
 
 // network wrapper functions:
 
-uint8_t game_network_player_from_net(NetworkClient* client, uint8_t player);
-uint8_t game_network_player_to_net(NetworkClient* client, uint8_t player);
-uint8_t game_network_move_index_from_net(GameSettings* game_settings, uint8_t move);
-uint8_t game_network_move_index_to_net(GameSettings* game_settings, uint8_t move);
-int game_network_receive_move(GameSettings* game_settings, NetworkClient* client, GameState* game);
-void game_network_send_move(GameSettings* game_settings, NetworkClient* client, uint8_t move);
+uint8_t game_network_player_from_net(const NetworkClient* client, uint8_t player);
+uint8_t game_network_player_to_net(const NetworkClient* client, uint8_t player);
+uint8_t game_network_move_index_from_net(const GameSettings* game_settings, uint8_t move);
+uint8_t game_network_move_index_to_net(const GameSettings* game_settings, uint8_t move);
+int game_network_receive_move(const GameSettings* game_settings, const NetworkClient* client, GameState* game);
+void game_network_send_move(const GameSettings* game_settings, const NetworkClient* client, uint8_t move);
 
 // ui & strings
 

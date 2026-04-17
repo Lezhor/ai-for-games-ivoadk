@@ -1,6 +1,5 @@
 #include "network/network_client.h"
 #include "utils/array_utils.h"
-#include "utils/lcg.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,7 +118,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
 }
 
 // true if move received. false = its this players turn
-int network_client_receive_move(NetworkClient* client, Move* out_move) {
+int network_client_receive_move(const NetworkClient* client, Move* out_move) {
     uint8_t byte1;
     ssize_t bytes_read = recv(client->socket_fd, &byte1, 1, MSG_WAITALL);
 
@@ -147,7 +146,7 @@ int network_client_receive_move(NetworkClient* client, Move* out_move) {
     return 1;
 }
 
-void network_client_send_move(NetworkClient* client, uint8_t move) {
+void network_client_send_move(const NetworkClient* client, uint8_t move) {
     if (send(client->socket_fd, &move, 1, 0) != 1) {
         perror("Network Error: Failed to send move");
         exit(EXIT_FAILURE);

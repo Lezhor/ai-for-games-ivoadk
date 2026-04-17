@@ -38,8 +38,8 @@ typedef struct Move {
  */
 void network_client_connect(const AgentConfig* config, NetworkClient* out_client);
 
-int network_client_receive_move(NetworkClient* client, Move* out_move);
-void network_client_send_move(NetworkClient* client, uint8_t move);
+int network_client_receive_move(const NetworkClient* client, Move* out_move);
+void network_client_send_move(const NetworkClient* client, uint8_t move);
 
 /**
  * Closes connection and cleans socket

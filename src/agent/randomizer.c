@@ -23,12 +23,12 @@ int main(int argc, char *argv[]) {
 
     GameSettings game_settings;
     GameState game = { .v = GAME_STATE_DEFAULT_VALUE };
-    (void)game; // TODO: remove game void cast
 
     game_init_settings(client.seed, &game_settings);
 
     char game_str[128];
     game_to_string(&game, game_str);
+    printf("Init S.:  %s\n", game_str);
 
 #ifdef USE_TUI
     char board_str[256];

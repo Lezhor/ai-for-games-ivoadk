@@ -36,6 +36,7 @@ int game_network_receive_move(const GameSettings* game_settings, const NetworkCl
     int received_status = network_client_receive_move(client, &received_move);
     if (received_status == 0) {
         // its this players turn!
+        game_turn_set(game, game_network_player_from_net(client, (uint8_t)client->player_number));
         return 0;
     }
     received_move.player = game_network_player_from_net(client, received_move.player);

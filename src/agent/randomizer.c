@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "cli.h"
+#include "game/game.h"
 #include "network/network_client.h"
 #include "utils/lcg.h"
 
@@ -15,30 +16,35 @@ int main(int argc, char *argv[]) {
     printf("Strategy: Play random legal moves\n");
     printf("----------------------------\n");
 
-    NetworkClient* client = calloc(1, sizeof(NetworkClient));
-    assert(client != NULL && "Failed to allocate NetworkClient");
+    NetworkClient client;
 
-    network_client_connect(&config, client);
+    network_client_connect(&config, &client);
+
+    GameSettings game_settings;
+    GameState game = { .v = GAME_STATE_DEFAULT_VALUE };
+    (void)game; // TODO: remove game void cast
+
+    game_init_settings(client.seed, &game_settings);
 
     lcg_t rng;
     // added +player cuz else all randomizers have the same rng object :/
-    lcg_set_seed(&rng, (uint64_t)(client->seed + client->player_number));
+    lcg_set_seed(&rng, (uint64_t)(client.seed + client.player_number));
 
     // game loop
 
     Move move;
     while (1) {
-        while (network_client_receive_move(client, &move)) {
+        while (network_client_receive_move(&client, &move)) {
             printf("Received move %u from player %u\n", move.index, move.player);
             // TODO: update board
         }
         // send move
         move.index = (uint8_t)lcg_next_int_n(&rng, 19);
         printf("Sending move %u\n", move.index);
-        network_client_send_move(client, move.index);
+        network_client_send_move(&client, move.index);
     }
 
-    printf("Game Started as player %d!", client->player_number);
+    printf("Game Started as player %d!", client.player_number);
 
     return EXIT_SUCCESS;
 }

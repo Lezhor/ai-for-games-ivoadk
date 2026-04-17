@@ -34,11 +34,11 @@ typedef struct {
 #define GAME_MASK_BOARD_EVEN       (uint64_t) 0x0000001555555555 // bits 0, 2, 4, 6, ...
 #define GAME_MASK_BOARD_ODD        (uint64_t) 0x0000002AAAAAAAAA // bits 1, 3, 5, 7, ...
 #define GAME_MASK_ACTIVE_PLAYERS   (uint64_t) 0x000001C000000000
-// TODO: mask array for individual players active? or function game_is_player_active()?
 #define GAME_MASK_PLAYER_TURN      (uint64_t) 0x0000060000000000
 #define GAME_MASK_SCORES           (uint64_t) 0xFFFFF8C000000000
 
-// TODO: define init game state value. all players active, 0 score, 1st players turn, board empty
+// board empty, all players active, 1st players turn, 0 score
+#define GAME_STATE_DEFAULT_VALUE   (uint64_t) 0x000003C000000000
 
 void game_init_settings(int32_t seed, GameSettings* out_game_settings);
 
@@ -57,9 +57,9 @@ static inline void game_set_player_inactive(GameState* game, uint8_t player) {
     game->v &= ~((uint64_t)1 << (37 + player));
 }
 
-void game_apply_move(GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move);
-void game_apply_triangles(GameSettings* game_settings, GameState* game);
-void game_take_move(GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move);
+void game_apply_move(const GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move);
+void game_apply_triangles(const GameSettings* game_settings, GameState* game);
+void game_take_move(const GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move);
 
 int game_finished_condition(GameState* game);
 uint8_t game_get_winner(GameState* game, uint8_t* out_winner_score);

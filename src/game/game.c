@@ -102,8 +102,6 @@ void game_turn_advance(GameState* game) {
 
     // NOTE: i might be able to cut off even more CPU cycles if i do (player_turn | active) the other way around cuz they are in this order in the game state. (only 1 fetch instead of two)
 
-    // TODO: create unit test for this cuz I made a typo for sure
-
     // active         mappings          |  output bits  | HEX
     //   111:   3->1, 2->3, 1->2, 0->1  |  01 11 10 01  |  79
     //   110:   3->2, 2->3, 1->2, 0->2  |  10 11 10 10  |  BA

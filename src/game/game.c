@@ -85,7 +85,7 @@ void game_turn_set(GameState* game, uint8_t player) {
     uint64_t skip_mask = (inactivate_lut >> (index * 4)) & 0xF;
     game->v &= ~(skip_mask << 38);
 
-    game->player_turn = (uint64_t)player;
+    game->player_turn = (uint64_t)(player & 3);
 }
 
 /**

@@ -15,6 +15,7 @@
 #define RESPONSE_KICK_INVALID 207
 #define RESPONSE_KICK_TIMEOUT 208
 
+// TODO: replace with actual logo i want to use :)
 #define DUMMY_LOGO_B64 "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjIGi0AAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
 
 static void recv_exact(int sock, uint8_t* buffer, size_t length) {
@@ -109,15 +110,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     out_client->player_number = player_num;
     out_client->time_limit_sec = time_limit;
     out_client->latency_ms = latency;
-
-    lcg_set_seed(&out_client->rng, (uint64_t)random_seed);
-
-    for (int i = 0; i < 19; i++) {
-        out_client->board_heights[i] = (board_height_t)(i + 1);
-    }
-
-    board_height_array_shuffle(out_client->board_heights, 19, &out_client->rng);
-    board_height_calculate_inverse_map(out_client->board_heights, out_client->board_inverse_map, 19);
+    out_client->seed = random_seed;
 
     printf("--- Connected to Server ---\n");
     printf("Player Number : %d\n", out_client->player_number);

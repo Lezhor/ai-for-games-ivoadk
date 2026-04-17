@@ -19,6 +19,7 @@ show_help() {
     echo -e "${YELLOW}Flags:${NC}"
     echo "  --seed <num>    Set a specific game seed (default: random)"
     echo "  --time <sec>    Set the server move time limit (default: 8)"
+    echo "  --host <ip>     Set the server ip. if provided doesn't start own server"
     echo "  --port <num>    Set the server port (default: 22135)"
     echo "  --no-server     Don't start any server"
     echo "  --help          Show this help message"
@@ -57,6 +58,7 @@ while [[ "$1" == --* ]] || [[ "$1" == "help" ]]; do
         --help|help) show_help ;;
         --seed) SEED="$2"; shift 2 ;;
         --time) TIME_LIMIT="$2"; shift 2 ;;
+        --host) HOST="$2"; START_SERVER=0; shift 2 ;;
         --port) PORT="$2"; shift 2 ;;
         --no-server) START_SERVER=0; shift ;;
         *)
@@ -111,9 +113,9 @@ echo -e " Launching Match"
 echo -e "   Seed       : ${SEED}"
 echo -e "   Time Limit : ${TIME_LIMIT}s"
 if [[ ${START_SERVER} -gt 0 ]]; then
-echo -e "   Server     : ${HOST}:${PORT}"
+echo -e "   Server     : localhost:${PORT} (starts own)"
 else
-echo -e "   Server     : [Disabled]"
+echo -e "   Server     : ${HOST}:${PORT}"
 fi
 echo -e "   Main       : ${YELLOW}$agent1${NC} ($preset) [Foreground]"
 echo -e "   Bot 2      : ${YELLOW}$agent2${NC} ($bg_preset) [Hidden]"

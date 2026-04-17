@@ -48,7 +48,7 @@ show_help() {
 # ---------------------------------------------------------
 # Default values
 START_SERVER=1
-HOST="141.45.58.105"
+HOST="127.0.0.1"
 PORT="22135"
 SEED=$((RANDOM * RANDOM))
 TIME_LIMIT="8"

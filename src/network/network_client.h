@@ -1,9 +1,7 @@
 #ifndef NETWORK_CLIENT_H
 #define NETWORK_CLIENT_H
 
-#include "game/board.h"
-#include "utils/lcg.h"
-
+#include <stdint.h>
 typedef struct AgentConfig {
     const char* host;
     int port;
@@ -14,13 +12,10 @@ typedef struct NetworkClient {
     int socket_fd; // POSIX file descriptor for the TCP socket
 
     // provided by server
-    lcg_t rng; // NOTE: we might not need it after board init? idk.
+    int32_t seed;
     int player_number;
     int time_limit_sec;
     int latency_ms;
-
-    board_height_t board_heights[19];
-    uint8_t board_inverse_map[19]; // value of index i should be index in board_heights where value is i
 } NetworkClient;
 
 typedef struct Move {

@@ -21,7 +21,8 @@ int main(int argc, char *argv[]) {
     network_client_connect(&config, client);
 
     lcg_t rng;
-    lcg_set_seed(&rng, (uint64_t)(lcg_next_int(&client->rng) + client->player_number));
+    // added +player cuz else all randomizers have the same rng object :/
+    lcg_set_seed(&rng, (uint64_t)(client->seed + client->player_number));
 
     // game loop
 

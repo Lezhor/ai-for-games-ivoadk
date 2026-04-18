@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define BOARD_SIZE 19
+#define BOARD_TRIANGLE_COUNT 24
 
 typedef uint8_t board_height_t;
 

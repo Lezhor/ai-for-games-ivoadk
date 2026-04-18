@@ -40,10 +40,7 @@ void game_apply_move(GameState* game, uint8_t player, uint8_t move) {
 }
 
 void game_apply_triangles(const GameSettings* game_settings, GameState* game) {
-    (void)game_settings;
-    (void)game;
-    // TODO: implement apply triangles
-
+    // should be true if L,M,H are all not zero and if L is different from M and H
     // L M |  H = 3 2 1 0    |  HEX
     // ----+-----------------+------
     // 3 3 |      0 0 0 0    |  0
@@ -64,7 +61,6 @@ void game_apply_triangles(const GameSettings* game_settings, GameState* game) {
     // 0 0 |      0 0 0 0    |  0
     // TODO: verify condition lut (unit test or smth / have i made typo?)
     const uint64_t CONDITION_LUT = 0x0660A0A0CC000000ULL;
-    (void)CONDITION_LUT;
 
     int i = 0;
     while (i < BOARD_TRIANGLE_COUNT) {
@@ -74,6 +70,7 @@ void game_apply_triangles(const GameSettings* game_settings, GameState* game) {
         int shift_M = t.shift_M;
         int shift_H = t.shift_H;
 
+        // actual player/stone
         uint64_t L = (game->v >> shift_L) & 3;
         uint64_t M = (game->v >> shift_M) & 3;
         uint64_t H = (game->v >> shift_H) & 3;
@@ -81,7 +78,16 @@ void game_apply_triangles(const GameSettings* game_settings, GameState* game) {
         uint64_t lut_idx = (L << 4) | (M << 2) | H;
 
         if ((CONDITION_LUT >> lut_idx) & 1) {
-            // triangle condition holds
+            // triangle condition true
+
+            // add 1x point to high player's score
+            game->v += (1ULL << (36 + H * 7));
+            // clear stones in triangle
+            game->v &= ~t.clear_mask;
+            // put middle stone to high spot
+            game->v |= (M << shift_H);
+
+            // TODO: jump back to previous triangle if applied successfully?
         }
         i++;
     }

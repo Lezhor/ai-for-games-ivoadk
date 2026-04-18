@@ -7,7 +7,9 @@
 // INIT
 
 void game_init_triangles(GameSettings* game_settings) {
-
+    // TODO: change params to board_heights and triangle_array
+    // TODO: implement init triangles
+    (void)game_settings;
 }
 
 void game_init_settings(int32_t seed, GameSettings* out_game_settings) {

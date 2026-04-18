@@ -10,11 +10,11 @@ typedef union {
     uint64_t v;
     struct {
         uint64_t clear_mask : 38; // Bits 0-37 (which 3 cells to clear during apply)
-        uint64_t shift_L    : 5;  // Bits 38-42
-        uint64_t shift_M    : 5;  // Bits 43-47
-        uint64_t shift_H    : 5;  // Bits 48-52
-        uint64_t jump_back  : 5;  // Bits 53-57 // earliest triangle to jump back too (in case rules change)
-        uint64_t unused     : 6;  // Bits 58-63
+        uint64_t shift_L    : 6;  // Bits 38-43
+        uint64_t shift_M    : 6;  // Bits 44-49
+        uint64_t shift_H    : 6;  // Bits 50-55
+        uint64_t jump_back  : 5;  // Bits 56-60 // earliest triangle to jump back too (in case rules change)
+        uint64_t unused     : 3;  // Bits 61-63
     };
 } Triangle;
 
@@ -38,7 +38,6 @@ typedef struct {
     board_height_t board_heights[BOARD_SIZE];
     uint8_t board_inverse_map[BOARD_SIZE]; // value of index i should be index in board_heights where value is i
 
-    // TODO: add triangle LUTs
     Triangle triangles[BOARD_TRIANGLE_COUNT];
 
 } GameSettings;

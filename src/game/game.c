@@ -1,4 +1,4 @@
-#include "game/game.h"
+#include "game/game_internal.h"
 #include "game/board.h"
 #include <assert.h>
 

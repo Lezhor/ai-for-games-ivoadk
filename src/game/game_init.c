@@ -1,5 +1,5 @@
 #include "game/board.h"
-#include "game/game.h"
+#include "game/game_internal.h"
 #include "utils/array_utils.h"
 #include "utils/lcg.h"
 

@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include "game/game.h"
+#include "game/game_internal.h"
 #include "minunit.h"
 
 int tests_run = 0;

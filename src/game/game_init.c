@@ -31,9 +31,9 @@ void game_init_triangles(board_height_t* board_heights, Triangle* out_triangles)
         int M_id = arr[1];
         int H_id = arr[2];
 
-        out_triangles[i].shift_L = (uint64_t)(L_id * 2);
-        out_triangles[i].shift_M = (uint64_t)(M_id * 2);
-        out_triangles[i].shift_H = (uint64_t)(H_id * 2);
+        out_triangles[i].shift_L = (uint64_t)((L_id * 2) & 0x3F);
+        out_triangles[i].shift_M = (uint64_t)((M_id * 2) & 0x3F);
+        out_triangles[i].shift_H = (uint64_t)((H_id * 2) & 0x3F);
 
         out_triangles[i].clear_mask = (3ULL << out_triangles[i].shift_L)
                                     | (3ULL << out_triangles[i].shift_M)

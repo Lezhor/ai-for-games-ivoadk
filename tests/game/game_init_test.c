@@ -42,8 +42,6 @@ static char* test_game_init_triangles(void) {
         int rank_M = triangle.shift_M / 2;
         int rank_H = triangle.shift_H / 2;
 
-        printf("triangle: %d, %d, %d\n", rank_H, rank_M, rank_L);
-
         mu_assert("Triangle ranks not properly sorted: L < M", rank_L < rank_M);
         mu_assert("Triangle ranks not properly sorted: M < H", rank_M < rank_H);
 

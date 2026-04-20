@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
@@ -25,11 +26,7 @@ int assert_triangle_apply_correctly(const GameSettings* settings, uint64_t initi
 
     game_apply_triangles(settings, &game);
 
-    if (game.v != expected_v) {
-        printf("  [FAILED] Expected: %016llX | Got: %016llX\n", expected_v, game.v);
-        return 0;
-    }
-    return 1;
+    return game.v == expected_v;
 }
 
 static char* test_apply_triangles(void) {

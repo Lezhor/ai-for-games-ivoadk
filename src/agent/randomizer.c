@@ -7,6 +7,28 @@
 #include "network/network_client.h"
 #include "utils/lcg.h"
 
+// TODO: this should be passed as a function pointer to a more generic agent loop
+int get_random_free(const GameState* game, lcg_t* rng) {
+    // not optimized but i don't care rn
+
+    uint8_t free_cells[BOARD_SIZE];
+    int free_count = 0;
+
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        if ((game->v & (3ULL << (i * 2))) == 0) {
+            free_cells[free_count++] = (uint8_t)i;
+        }
+    }
+
+    if (free_count == 0) {
+        return BOARD_SIZE;
+    }
+
+    int random_index = lcg_next_int_n(rng, free_count);
+
+    return free_cells[random_index];
+}
+
 int main(int argc, char *argv[]) {
     AgentConfig config = parse_args(argc, argv);
 
@@ -53,8 +75,7 @@ int main(int argc, char *argv[]) {
 #endif /* ifdef USE_TUI */
         }
         // random move
-        // TODO: random empty cell
-        move = (uint8_t)lcg_next_int_n(&rng, BOARD_SIZE);
+        move = (uint8_t)get_random_free(&game, &rng);
         game_network_send_move(&game_settings, &client, move);
     }
 

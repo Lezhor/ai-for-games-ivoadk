@@ -35,7 +35,6 @@ void game_apply_triangles(const GameSettings* game_settings, GameState* game) {
     // 0 2 |      0 0 0 0    |  0
     // 0 1 |      0 0 0 0    |  0
     // 0 0 |      0 0 0 0    |  0
-    // TODO: verify condition lut (unit test or smth / have i made typo?)
     const uint64_t CONDITION_LUT = 0x0660A0A0CC000000ULL;
 
     int i = 0;

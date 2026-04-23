@@ -16,6 +16,9 @@ void game_init_triangles(board_height_t* board_heights, Triangle* out_triangles)
     };
 
     for (int i = 0; i < BOARD_TRIANGLE_COUNT; i++) {
+
+        out_triangles[i].v = 0;
+
         int arr[3] = {
             board_heights[BASE_TRIANGLES[i][0]],
             board_heights[BASE_TRIANGLES[i][1]],

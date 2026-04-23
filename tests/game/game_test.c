@@ -1,11 +1,89 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
 
-#include "game/game.h"
+#include "game/game_internal.h"
 #include "minunit.h"
 
 int tests_run = 0;
+
+// helper for filling cells
+#define CELL_VAL(cell, player) ((uint64_t)(player) << ((cell) * 2))
+
+// helper for writing score values
+#define SCORE_VAL(player) (1ULL << (36 + (player) * 7))
+
+typedef struct {
+    uint64_t initial_v;
+    uint64_t expected_v;
+    const char* description;
+} TriangleTestCase;
+
+int assert_triangle_apply_correctly(const GameSettings* settings, uint64_t initial_v, uint64_t expected_v) {
+    GameState game;
+    game.v = initial_v;
+
+    game_apply_triangles(settings, &game);
+
+    return game.v == expected_v;
+}
+
+static char* test_apply_triangles(void) {
+    // just normal order / idx == board_height
+    board_height_t heights[BOARD_SIZE];
+    for (int i = 0; i < BOARD_SIZE; i++) heights[i] = (board_height_t)i;
+
+    GameSettings settings;
+    game_init_triangles(heights, settings.triangles);
+
+    TriangleTestCase cases[] = {
+        {
+            .description = "Standard Trigger (Tri 0: L=1, M=2, H=3) -> P3 scores, M moves to H",
+            // Tri 0 uses cells {0, 1, 4}
+            .initial_v = CELL_VAL(0, 1) | CELL_VAL(1, 2) | CELL_VAL(4, 3),
+            .expected_v = CELL_VAL(4, 2) | SCORE_VAL(3)
+        },
+        {
+            .description = "Rejection: L == M (Should not trigger)",
+            .initial_v  = CELL_VAL(0, 2) | CELL_VAL(1, 2) | CELL_VAL(4, 3),
+            .expected_v = CELL_VAL(0, 2) | CELL_VAL(1, 2) | CELL_VAL(4, 3)
+        },
+        {
+            .description = "Rejection: L == H (Should not trigger)",
+            .initial_v  = CELL_VAL(0, 1) | CELL_VAL(1, 2) | CELL_VAL(4, 1),
+            .expected_v = CELL_VAL(0, 1) | CELL_VAL(1, 2) | CELL_VAL(4, 1)
+        },
+        {
+            .description = "Valid: M == H (Should trigger!)",
+            .initial_v = CELL_VAL(0, 1) | CELL_VAL(1, 2) | CELL_VAL(4, 2) | SCORE_VAL(1) | SCORE_VAL(2),
+            .expected_v = CELL_VAL(4, 2) | SCORE_VAL(1) | (SCORE_VAL(2) * 2)
+        },
+        {
+            .description = "Chain Reaction (Tri 0 followed by Tri 6)",
+            // Tri 0 {0, 1, 4}. Tri 6 {4, 5, 9}.
+            // Tri 0 triggers, dropping a '2' into cell 4.
+            // Tri 6 now has {4=2, 5=3, 9=1}, which triggers Tri 6!
+            .initial_v = CELL_VAL(0, 1) | CELL_VAL(1, 2) | CELL_VAL(4, 3) |
+                         CELL_VAL(5, 3) | CELL_VAL(9, 1),
+
+            // End result:
+            // P3 scores (from Tri 0), P1 scores (from Tri 6)
+            // Cell 9 gets the '3' from Cell 5. All other cells are empty.
+            .expected_v = CELL_VAL(9, 3) | SCORE_VAL(3) | SCORE_VAL(1)
+        }
+            // TODO: test jump back value (continue or jump back immediately)
+    };
+
+    int num_cases = sizeof(cases) / sizeof(cases[0]);
+
+    for (int i = 0; i < num_cases; i++) {
+        mu_assert(cases[i].description,
+                  assert_triangle_apply_correctly(&settings, cases[i].initial_v, cases[i].expected_v));
+    }
+
+    return 0;
+}
 
 static char* test_game_turn_advance(void) {
     // test normal if-else branches vs. actual lut implementation
@@ -77,6 +155,7 @@ static char* test_game_turn_set(void) {
 
 static char* test_all(void) {
     printf("Running game tests...\n");
+    mu_run_test(test_apply_triangles);
     mu_run_test(test_game_turn_advance);
     mu_run_test(test_game_turn_set);
     return 0;

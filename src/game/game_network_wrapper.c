@@ -1,8 +1,7 @@
-#include "game/board.h"
+#include "game/game_internal.h"
 #include "network/network_client.h"
 #include <assert.h>
 #include <stdint.h>
-#include "game/game.h"
 
 uint8_t game_network_player_from_net(const NetworkClient* client, uint8_t player) {
     assert(player <= 2 && "player has to be between 0 and 2 in from_network_player");

@@ -1,22 +1,8 @@
-#include "game/game.h"
+#include "game/game_internal.h"
 #include "game/board.h"
-#include "utils/array_utils.h"
-#include "utils/lcg.h"
 #include <assert.h>
 
-void game_init_settings(int32_t seed, GameSettings* out_game_settings) {
-
-    // init board heights
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        out_game_settings->board_heights[i] = (board_height_t)i;
-    }
-    lcg_t rng;
-    lcg_set_seed(&rng, (uint64_t)seed);
-    board_height_array_shuffle(out_game_settings->board_heights, BOARD_SIZE, &rng);
-    board_height_calculate_inverse_map(out_game_settings->board_heights, out_game_settings->board_inverse_map, BOARD_SIZE);
-
-    // TODO: init triangles in correct order
-}
+// GAME LOOP
 
 /**
  * applies single move without calculating scores etc.
@@ -30,9 +16,59 @@ void game_apply_move(GameState* game, uint8_t player, uint8_t move) {
 }
 
 void game_apply_triangles(const GameSettings* game_settings, GameState* game) {
-    (void)game_settings;
-    (void)game;
-    // TODO: implement apply triangles
+    // should be true if L,M,H are all not zero and if L is different from M and H
+    // L M |  H = 3 2 1 0    |  HEX
+    // ----+-----------------+------
+    // 3 3 |      0 0 0 0    |  0
+    // 3 2 |      0 1 1 0    |  6
+    // 3 1 |      0 1 1 0    |  6
+    // 3 0 |      0 0 0 0    |  0
+    // 2 3 |      1 0 1 0    |  A
+    // 2 2 |      0 0 0 0    |  0
+    // 2 1 |      1 0 1 0    |  A
+    // 2 0 |      0 0 0 0    |  0
+    // 1 3 |      1 1 0 0    |  C
+    // 1 2 |      1 1 0 0    |  C
+    // 1 1 |      0 0 0 0    |  0
+    // 1 0 |      0 0 0 0    |  0
+    // 0 3 |      0 0 0 0    |  0
+    // 0 2 |      0 0 0 0    |  0
+    // 0 1 |      0 0 0 0    |  0
+    // 0 0 |      0 0 0 0    |  0
+    const uint64_t CONDITION_LUT = 0x0660A0A0CC000000ULL;
+
+    int i = 0;
+    while (i < BOARD_TRIANGLE_COUNT) {
+        Triangle t = game_settings->triangles[i];
+
+        int shift_L = t.shift_L;
+        int shift_M = t.shift_M;
+        int shift_H = t.shift_H;
+
+        // actual player/stone
+        uint64_t L = (game->v >> shift_L) & 3;
+        uint64_t M = (game->v >> shift_M) & 3;
+        uint64_t H = (game->v >> shift_H) & 3;
+
+        uint64_t lut_idx = (L << 4) | (M << 2) | H;
+
+        if ((CONDITION_LUT >> lut_idx) & 1) {
+            // triangle condition true
+
+            // add 1x point to high player's score
+            game->v += (1ULL << (36 + H * 7));
+            // clear stones in triangle
+            game->v &= ~t.clear_mask;
+            // put middle stone to high spot
+            game->v |= (M << shift_H);
+
+            // TODO: is jump back correct? will the rules change maybe?
+            i = t.jump_back;
+        } else {
+            i++;
+        }
+    }
+
 }
 
 /**
@@ -79,7 +115,7 @@ void game_turn_set(GameState* game, uint8_t player) {
     // e.g. from 1 to 1 its 0 aka 000 - so we don't change anything (we are already at correct turn)
     // e.g. from 3 to 2 its 6 aka 110 - so we inactivate bit 2, 3 since they didnt take a move
     // e.g. from 2 to 3 its 2 aka 010 - so we inactivate bit 2 since 2 didnt take a move
-    uint64_t inactivate_lut = 0x0540206031000000ULL;
+    const uint64_t inactivate_lut = 0x0540206031000000ULL;
 
     int index = (game->player_turn << 2) | player;
     uint64_t skip_mask = (inactivate_lut >> (index * 4)) & 0xF;
@@ -111,13 +147,15 @@ void game_turn_advance(GameState* game) {
     //   010:   3->2, 2->2, 1->2, 0->2  |  10 10 10 10  |  AA
     //   001:   3->1, 2->1, 1->1, 0->1  |  01 01 01 01  |  55
     //   000:   3->3, 2->2, 1->1, 0->0  |  11 10 01 00  |  E4
-    uint64_t next_turn_lut = 0x79BA7DFF59AA55E4ULL;
+    const uint64_t next_turn_lut = 0x79BA7DFF59AA55E4ULL;
 
     // 36 instead of 38 - already shifted << 2 to not shift twice :)
     uint64_t active_shifted = (game->v >> 36) & 0x1C;
     uint64_t index = active_shifted | game->player_turn;
     game->player_turn = (uint64_t)((next_turn_lut >> (index * 2)) & 3);
 }
+
+// GAME FINISH
 
 int game_finished_condition(GameState* game) {
     // check if 1 or less players remaining

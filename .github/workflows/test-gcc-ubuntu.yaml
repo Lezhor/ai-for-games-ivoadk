@@ -1,0 +1,29 @@
+name: Test GCC (Linux)
+
+on:
+  # push:
+  #   branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-linux-gcc:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build default-jre
+
+    - name: Configure CMake
+      run: cmake --preset headless-debug
+
+    - name: Build
+      run: cmake --build --preset headless-debug
+
+    - name: Run tests
+      run: ctest --preset headless-debug --output-on-failure

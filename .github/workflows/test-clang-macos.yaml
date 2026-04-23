@@ -1,14 +1,15 @@
-name: Test
+name: Test MacOS (Clang)
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  test-linux:
-    runs-on: ubuntu-latest
+  test-macos:
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -17,8 +18,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake ninja-build default-jre
+        brew update
+        brew install cmake ninja
 
     - name: Configure CMake
       run: cmake --preset headless-debug

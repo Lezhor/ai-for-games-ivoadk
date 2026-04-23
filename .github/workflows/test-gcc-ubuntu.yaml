@@ -1,13 +1,12 @@
-name: Test
+name: Test GCC (Linux)
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  test-linux:
+  test-linux-gcc:
     runs-on: ubuntu-latest
 
     steps:

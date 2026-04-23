@@ -17,6 +17,7 @@ show_help() {
     echo -e "${CYAN}Usage:${NC} ./scripts/run_server_loop.sh [flags]"
     echo ""
     echo -e "${YELLOW}Flags:${NC}"
+    echo "  --port <num>    Run on port"
     echo "  --seed <num>    Set a specific game seed (omit for random)"
     echo "  --time <sec>    Set the server move time limit (default: 8)"
     echo "  --help          Show this help message"
@@ -34,6 +35,7 @@ cd "$SCRIPT_DIR/.." || exit 1
 # ---------------------------------------------------------
 TIME_LIMIT="8"
 SEED="" # Empty by default so we know if the user provided one
+PORT="22135"
 
 # ---------------------------------------------------------
 # Flag Parsing
@@ -43,6 +45,7 @@ while [[ "$1" == --* ]] || [[ "$1" == "help" ]]; do
         --help|help) show_help ;;
         --seed) SEED="$2"; shift 2 ;;
         --time) TIME_LIMIT="$2"; shift 2 ;;
+        --port) PORT="$2"; shift 2 ;;
         *)
             echo -e "${RED}Unknown flag: $1${NC}"
             exit 1
@@ -62,7 +65,8 @@ trap 'echo -e "\n${RED}Shutting down server loop...${NC}"; exit 0' INT
 # ---------------------------------------------------------
 # We use a bash array so we can safely append arguments without messing up quotes.
 # Notice we removed the "quiet" flag so you get all the terminal output!
-CMD=(java -Djava.library.path=./server/lib/native -Djava.awt.headless=true -jar ./server/ivoadk.jar headless time="$TIME_LIMIT")
+# TODO: pass seed to this function
+CMD=(java -Djava.library.path=./server/lib/native -Djava.awt.headless=true -jar ./server/ivoadk.jar headless time="$TIME_LIMIT" port="$PORT")
 
 # If the user provided a seed, append it to the command array
 if [ -n "$SEED" ]; then
@@ -74,6 +78,7 @@ fi
 
 echo -e "${GREEN}==========================================================${NC}"
 echo -e " ${GREEN}Starting Continuous Server Loop${NC}"
+echo -e "   Port       : ${PORT}"
 echo -e "   Time Limit : ${TIME_LIMIT}s"
 echo -e "   Seed       : ${SEED_DISPLAY}"
 echo -e "   Stop       : Press ${YELLOW}Ctrl+C${NC} to exit"

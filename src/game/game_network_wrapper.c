@@ -45,7 +45,7 @@ int game_network_receive_move(const GameSettings* game_settings, const NetworkCl
 }
 
 void game_network_send_move(const GameSettings* game_settings, const NetworkClient* client, uint8_t move) {
-    assert(move < BOARD_SIZE);
-    move = game_network_move_index_to_net(game_settings, move);
+    assert(move < BOARD_SIZE + 1);
+    move = (move == BOARD_SIZE) ? BOARD_SIZE : game_network_move_index_to_net(game_settings, move);
     network_client_send_move(client, move);
 }

@@ -1,33 +1,22 @@
-#include <assert.h>
+#include "helper/agent_core.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "cli.h"
-#include "network/network_client.h"
 
 int main(int argc, char *argv[]) {
-    AgentConfig config = parse_args(argc, argv);
+    AgentContext ctx;
 
-    printf("--- IVOADK Idler Client ---\n");
-    printf("Target Host: %s\n", config.host);
-    printf("Target Port: %d\n", config.port);
-    printf("Agent Name: %s\n", config.agent_name);
-    printf("Strategy: Play illegal move and break immediately\n");
-    printf("----------------------------\n");
+    agent_init(&ctx, argc, argv, "Idler", "Play illegal move and break immediately");
 
-    NetworkClient* client = calloc(1, sizeof(NetworkClient));
-    assert(client != NULL && "Failed to allocate NetworkClient");
-
-    network_client_connect(&config, client);
-
-    Move move;
-    while (network_client_receive_move(client, &move)) {
-        printf("Received move %u from player %u\n", move.index, move.player);
+    // Custom loop for idler
+    while (game_network_receive_move(&ctx.game_settings, &ctx.client, &ctx.game)) {
+        // Just consume moves until it's our turn
     }
-    move.index = 19;
-    printf("Sending illegal move %u\n", move.index);
-    network_client_send_move(client, move.index);
 
-    printf("Exiting now!");
+    uint8_t illegal_move = BOARD_SIZE;
+    printf("Sending illegal move %u\n", illegal_move);
+    game_network_send_move(&ctx.game_settings, &ctx.client, illegal_move);
+
+    printf("Exiting now!\n");
 
     return EXIT_SUCCESS;
 }

@@ -118,6 +118,7 @@ file(GLOB_RECURSE CORE_SUB_FILES
     "${CMAKE_SOURCE_DIR}/src/network/*.c"
     "${CMAKE_SOURCE_DIR}/src/utils/*.c"
     "${CMAKE_SOURCE_DIR}/src/game/*.c"
+    "${CMAKE_SOURCE_DIR}/src/agent/helper/*.c"
 )
 set(CORE_FILES ${CORE_ROOT_FILES} ${CORE_SUB_FILES})
 
@@ -178,8 +179,8 @@ endfunction()
 # Register your Agents here!
 add_agent_executable(idler)
 add_agent_executable(randomizer)
+add_agent_executable(minmax)
 # TODO: add_agent_executable(human)
-# TODO: add_agent_executable(ai_agent)
 
 
 # --------------------------------------------------------

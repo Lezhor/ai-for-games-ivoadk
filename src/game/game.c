@@ -162,19 +162,36 @@ int game_finished_condition(GameState* game) {
     if (__builtin_popcountll(game->v & GAME_MASK_ACTIVE_PLAYERS) <= 1) {
         return 1;
     }
-    // check if board is full (no need to access game->board here and waste one cpu cycle :)
+    // check if board is full
     if (((game->v | (game->v >> 1)) & GAME_MASK_BOARD_EVEN) == GAME_MASK_BOARD_EVEN) {
         return 1;
     }
-    // TODO: maximum score reached condition
+    // maximum score reached condition
+    if (game->p1_score >= GAME_SCORE_TO_WIN || game->p2_score >= GAME_SCORE_TO_WIN || game->p3_score >= GAME_SCORE_TO_WIN) {
+        return 1;
+    }
     return 0;
 }
 
 uint8_t game_get_winner(GameState* game, uint8_t* out_winner_score) {
-    // TODO: implement get winner by comparing scores
-    (void)(game);
-    (void)(out_winner_score);
-    return 0;
+    uint8_t winner = 0;
+    uint8_t max_score = 0;
+
+    if (game->p1_active) {
+        winner = 1;
+        max_score = game->p1_score;
+    }
+    if (game->p2_active && game->p2_score > max_score) {
+        winner = 2;
+        max_score = game->p2_score;
+    }
+    if (game->p3_active && game->p3_score > max_score) {
+        winner = 3;
+        max_score = game->p3_score;
+    }
+
+    if (out_winner_score) *out_winner_score = max_score;
+    return winner;
 }
 
 int game_get_move_count(GameState* game) {

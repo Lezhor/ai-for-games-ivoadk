@@ -39,7 +39,7 @@ void agent_loop(AgentContext* ctx, AgentStrategyFn strategy, void* strategy_data
     while (1) {
         while (game_network_receive_move(&ctx->game_settings, &ctx->client, &ctx->game)) {
             game_to_string(&ctx->game, game_str);
-            printf("Move %3d: %s\n", game_get_move_count(&ctx->game), game_str);
+            printf("Move %3d: %s, main_player: %d\n", game_get_move_count(&ctx->game), game_str, ctx->client.player_number + 1);
 #ifdef USE_TUI
             game_to_2d_board_string(&ctx->game_settings, &ctx->game, board_str);
             printf("%s\n", board_str);

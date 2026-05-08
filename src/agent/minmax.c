@@ -23,5 +23,7 @@ int main(int argc, char *argv[]) {
 
     agent_loop(&ctx, minmax_strategy, &depth);
 
+    // TODO: agent_finish() function which prints what player we were and who won
+
     return EXIT_SUCCESS;
 }

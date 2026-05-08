@@ -174,20 +174,20 @@ int game_finished_condition(GameState* game) {
 }
 
 uint8_t game_get_winner(GameState* game, uint8_t* out_winner_score) {
-    uint8_t winner = 0;
-    uint8_t max_score = 0;
+    uint8_t winner = 1;
+    uint8_t max_score = game->p1_score;
 
-    if (game->p1_active) {
-        winner = 1;
-        max_score = game->p1_score;
-    }
-    if (game->p2_active && game->p2_score > max_score) {
+    if (game->p2_score > max_score) {
         winner = 2;
         max_score = game->p2_score;
+    } else if (game->p2_score == max_score) {
+        winner = 0; // draw
     }
-    if (game->p3_active && game->p3_score > max_score) {
+    if (game->p3_score > max_score) {
         winner = 3;
         max_score = game->p3_score;
+    } else if (game->p3_score == max_score) {
+        winner = 0;
     }
 
     if (out_winner_score) *out_winner_score = max_score;

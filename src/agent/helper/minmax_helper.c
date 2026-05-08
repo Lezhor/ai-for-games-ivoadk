@@ -7,9 +7,14 @@
 static int evaluate(const GameState* state, uint8_t max_player, int depth) {
     int scores[4] = {0, (int)state->p1_score, (int)state->p2_score, (int)state->p3_score};
     int my_score = scores[max_player];
-    
+    (void)depth;
+
     int max_opp_score = 0;
+    int opponent_score_sum = 0;
     for (int i = 1; i <= 3; i++) {
+        if (i != (int)max_player) {
+            opponent_score_sum += scores[i];
+        }
         if (i != (int)max_player && scores[i] > max_opp_score) {
             max_opp_score = scores[i];
         }
@@ -20,10 +25,11 @@ static int evaluate(const GameState* state, uint8_t max_player, int depth) {
         uint8_t win_score_val;
         uint8_t winner = game_get_winner((GameState*)state, &win_score_val);
         if (winner == max_player) return WIN_SCORE + depth + my_score;
-        if (winner != 0) return LOSS_SCORE - depth - win_score_val;
+        if (winner != 0) return LOSS_SCORE - depth + my_score;
+        // if (winner == 0) return 0 + my_score;
     }
 
-    return my_score - max_opp_score;
+    return 2 * my_score - opponent_score_sum;
 }
 
 static int minmax_recursive(const GameSettings* settings, GameState* state, int depth, int alpha, int beta, uint8_t max_player) {

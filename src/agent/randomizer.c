@@ -18,7 +18,7 @@ uint8_t get_random_free(const GameState* game, lcg_t* rng) {
     }
 
     if (free_count == 0) {
-        return BOARD_SIZE;
+        return ILLEGAL_MOVE;
     }
 
     int random_index = lcg_next_int_n(rng, free_count);

@@ -22,9 +22,9 @@ uint8_t game_network_move_index_from_net(const GameSettings* game_settings, uint
 }
 
 uint8_t game_network_move_index_to_net(const GameSettings* game_settings, uint8_t move) {
-    // note that move == BOARD_SIZE is allowed for intentionally playing illegal move
-    assert(move <= BOARD_SIZE && "move out of bounds in game_network_move_index_to_net()");
-    return move == BOARD_SIZE ? BOARD_SIZE : game_settings->board_inverse_map[move];
+    // playing illegal move is allowed
+    assert(move <= ILLEGAL_MOVE && "move out of bounds in game_network_move_index_to_net()");
+    return move == ILLEGAL_MOVE ? ILLEGAL_MOVE : game_settings->board_inverse_map[move];
 }
 
 /**
@@ -45,7 +45,7 @@ int game_network_receive_move(const GameSettings* game_settings, const NetworkCl
 }
 
 void game_network_send_move(const GameSettings* game_settings, const NetworkClient* client, uint8_t move) {
-    assert(move < BOARD_SIZE + 1);
-    move = (move == BOARD_SIZE) ? BOARD_SIZE : game_network_move_index_to_net(game_settings, move);
+    assert(move < ILLEGAL_MOVE + 1);
+    move = (move == ILLEGAL_MOVE) ? ILLEGAL_MOVE : game_network_move_index_to_net(game_settings, move);
     network_client_send_move(client, move);
 }

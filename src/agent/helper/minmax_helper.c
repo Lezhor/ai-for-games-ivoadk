@@ -1,13 +1,13 @@
 #include "minmax_helper.h"
 #include <limits.h>
 
-#define WIN_SCORE 10000
-#define LOSS_SCORE -10000
+#define WIN_SCORE 100000
+#define LOSS_SCORE -100000
 
-static int evaluate(const GameState* state, uint8_t max_player) {
+static int evaluate(const GameState* state, uint8_t max_player, int depth) {
     int scores[4] = {0, (int)state->p1_score, (int)state->p2_score, (int)state->p3_score};
     int my_score = scores[max_player];
-
+    
     int max_opp_score = 0;
     for (int i = 1; i <= 3; i++) {
         if (i != (int)max_player && scores[i] > max_opp_score) {
@@ -19,8 +19,8 @@ static int evaluate(const GameState* state, uint8_t max_player) {
     if (game_finished_condition((GameState*)state)) {
         uint8_t win_score_val;
         uint8_t winner = game_get_winner((GameState*)state, &win_score_val);
-        if (winner == max_player) return WIN_SCORE + my_score;
-        if (winner != 0) return LOSS_SCORE - win_score_val;
+        if (winner == max_player) return WIN_SCORE + depth + my_score;
+        if (winner != 0) return LOSS_SCORE - depth - win_score_val;
     }
 
     return my_score - max_opp_score;
@@ -28,7 +28,7 @@ static int evaluate(const GameState* state, uint8_t max_player) {
 
 static int minmax_recursive(const GameSettings* settings, GameState* state, int depth, int alpha, int beta, uint8_t max_player) {
     if (depth <= 0 || game_finished_condition(state)) {
-        return evaluate(state, max_player);
+        return evaluate(state, max_player, depth);
     }
 
     uint8_t current_player = (uint8_t)(state->player_turn);
@@ -56,7 +56,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
         // Evaluate illegal move last if pruning didn't happen
         if (beta > alpha) {
             GameState next_state = *state;
-            game_take_move(settings, &next_state, current_player, BOARD_SIZE);
+            game_take_move(settings, &next_state, current_player, ILLEGAL_MOVE);
             int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
             if (eval > max_eval) max_eval = eval;
         }
@@ -80,7 +80,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
 
         if (beta > alpha) {
             GameState next_state = *state;
-            game_take_move(settings, &next_state, current_player, BOARD_SIZE);
+            game_take_move(settings, &next_state, current_player, ILLEGAL_MOVE);
             int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
             if (eval < min_eval) min_eval = eval;
         }
@@ -90,7 +90,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
 }
 
 uint8_t minmax_search(const GameSettings* settings, const GameState* state, int depth, uint8_t max_player) {
-    uint8_t best_move = BOARD_SIZE;
+    uint8_t best_move = ILLEGAL_MOVE;
     int max_eval = INT_MIN;
     int alpha = INT_MIN;
     int beta = INT_MAX;
@@ -108,7 +108,7 @@ uint8_t minmax_search(const GameSettings* settings, const GameState* state, int 
 
         GameState next_state = *state;
         game_take_move(settings, &next_state, current_player, move);
-        int eval = minmax_recursive(settings, &next_state, depth, alpha, beta, max_player);
+        int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
         if (eval > max_eval) {
             max_eval = eval;
             best_move = move;
@@ -116,12 +116,12 @@ uint8_t minmax_search(const GameSettings* settings, const GameState* state, int 
         if (eval > alpha) alpha = eval;
     }
 
-    // Illegal move last
+    // Illegal move last - only take it if it is STRICTLY better than legal moves
     GameState next_state = *state;
-    game_take_move(settings, &next_state, current_player, BOARD_SIZE);
-    int eval = minmax_recursive(settings, &next_state, depth, alpha, beta, max_player);
+    game_take_move(settings, &next_state, current_player, ILLEGAL_MOVE);
+    int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
     if (eval > max_eval) {
-        best_move = BOARD_SIZE;
+        best_move = ILLEGAL_MOVE;
     }
 
     return best_move;

@@ -80,12 +80,12 @@ void game_apply_triangles(const GameSettings* game_settings, GameState* game) {
  * as inactive because they probably got kicked.
  */
 void game_take_move(const GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move) {
-    // move == BOARD_SIZE is fine cuz its considered an intentionally illegal move
-    assert(move <= BOARD_SIZE && "move out of bounds in game_take_move");
+    // move == ILLEGAL_MOVE is fine cuz its considered an intentionally illegal move
+    assert(move <= ILLEGAL_MOVE && "move out of bounds in game_take_move");
     assert(game_is_player_active(game, player) && "inactive player tried to take move in game_take_move()");
 
     game_turn_set(game, player); // inactivates players who got skipped
-    if (move == BOARD_SIZE) {
+    if (move == ILLEGAL_MOVE) {
         // intentionally played illegal move
         game_set_player_inactive(game, player);
     } else {

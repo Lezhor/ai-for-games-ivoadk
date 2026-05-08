@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
         // Just consume moves until it's our turn
     }
 
-    uint8_t illegal_move = BOARD_SIZE;
+    uint8_t illegal_move = ILLEGAL_MOVE;
     printf("Sending illegal move %u\n", illegal_move);
     game_network_send_move(&ctx.game_settings, &ctx.client, illegal_move);
 

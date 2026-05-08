@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
 
     agent_init(&ctx, argc, argv, "MinMax Paranoid", "Simple MinMax search with Alpha-Beta Pruning. Treats both opponents as one...");
 
-    int depth = 3;
+    int depth = 8;
     if (argc > 4) {
         depth = atoi(argv[4]);
     }

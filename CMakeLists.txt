@@ -180,6 +180,7 @@ endfunction()
 add_agent_executable(idler)
 add_agent_executable(randomizer)
 add_agent_executable(minmax)
+add_agent_executable(maxn)
 # TODO: add_agent_executable(human)
 
 

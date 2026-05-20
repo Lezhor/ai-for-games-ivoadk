@@ -25,6 +25,12 @@ static void recv_exact(int sock, uint8_t* buffer, size_t length) {
     }
 }
 
+static uint64_t get_now_ms(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (uint64_t)(tv.tv_sec) * 1000 + (uint64_t)(tv.tv_usec) / 1000;
+}
+
 void network_client_connect(const AgentConfig* config, NetworkClient* out_client) {
     assert(config != NULL);
     assert(config->host != NULL);
@@ -58,8 +64,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
 
     printf("TCP Handshake with Server...\n");
 
-    struct timeval start_time, end_time;
-    gettimeofday(&start_time, NULL);
+    uint64_t start_time = get_now_ms();
 
     uint8_t ping_out = 1;
     if (send(sock, &ping_out, 1, 0) != 1) {
@@ -67,12 +72,12 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
         exit(EXIT_FAILURE);
     }
 
-    gettimeofday(&end_time, NULL);
-    int latency = (int)(((end_time.tv_sec - start_time.tv_sec) * 1000) +
-                        ((end_time.tv_usec - start_time.tv_usec) / 1000));
-
     uint8_t ping_in;
     recv_exact(sock, &ping_in, 1);
+
+    uint64_t end_time = get_now_ms();
+    int latency = (int)(end_time - start_time);
+
     if (ping_in != 1) {
         fprintf(stderr, "Fatal Error: Outdated client or server version mismatch!\n");
         exit(EXIT_FAILURE);
@@ -110,6 +115,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     out_client->time_limit_sec = time_limit;
     out_client->latency_ms = latency;
     out_client->seed = random_seed;
+    out_client->input_request_timestamp = get_now_ms();
 
     printf("--- Connected to Server ---\n");
     printf("Player Number : %d\n", out_client->player_number);
@@ -118,7 +124,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
 }
 
 // true if move received. false = its this players turn
-int network_client_receive_move(const NetworkClient* client, Move* out_move) {
+int network_client_receive_move(NetworkClient* client, Move* out_move) {
     uint8_t byte1;
     ssize_t bytes_read = recv(client->socket_fd, &byte1, 1, MSG_WAITALL);
 
@@ -126,6 +132,8 @@ int network_client_receive_move(const NetworkClient* client, Move* out_move) {
         fprintf(stderr, "\nFatal Error: Connection closed. Game Over.");
         exit(EXIT_FAILURE);
     }
+
+    client->input_request_timestamp = get_now_ms() - (uint64_t)(client->latency_ms / 2);
 
     if (byte1 == RESPONSE_MOVE_NULL) {
         return 0; // its this players turn
@@ -146,7 +154,7 @@ int network_client_receive_move(const NetworkClient* client, Move* out_move) {
     return 1;
 }
 
-void network_client_send_move(const NetworkClient* client, uint8_t move) {
+void network_client_send_move(NetworkClient* client, uint8_t move) {
     if (send(client->socket_fd, &move, 1, 0) != 1) {
         perror("Network Error: Failed to send move");
         exit(EXIT_FAILURE);

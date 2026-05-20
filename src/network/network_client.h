@@ -16,6 +16,9 @@ typedef struct NetworkClient {
     int player_number;
     int time_limit_sec;
     int latency_ms;
+
+    // local state
+    uint64_t input_request_timestamp; // ms
 } NetworkClient;
 
 typedef struct Move {
@@ -38,8 +41,8 @@ typedef struct Move {
  */
 void network_client_connect(const AgentConfig* config, NetworkClient* out_client);
 
-int network_client_receive_move(const NetworkClient* client, Move* out_move);
-void network_client_send_move(const NetworkClient* client, uint8_t move);
+int network_client_receive_move(NetworkClient* client, Move* out_move);
+void network_client_send_move(NetworkClient* client, uint8_t move);
 
 /**
  * Closes connection and cleans socket

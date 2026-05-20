@@ -30,7 +30,7 @@ uint8_t game_network_move_index_to_net(const GameSettings* game_settings, uint8_
 /**
  * receives move and updates game
  */
-int game_network_receive_move(const GameSettings* game_settings, const NetworkClient* client, GameState* game) {
+int game_network_receive_move(const GameSettings* game_settings, NetworkClient* client, GameState* game) {
     Move received_move;
     int received_status = network_client_receive_move(client, &received_move);
     if (received_status == 0) {
@@ -44,7 +44,7 @@ int game_network_receive_move(const GameSettings* game_settings, const NetworkCl
     return 1;
 }
 
-void game_network_send_move(const GameSettings* game_settings, const NetworkClient* client, uint8_t move) {
+void game_network_send_move(const GameSettings* game_settings, NetworkClient* client, uint8_t move) {
     assert(move < ILLEGAL_MOVE + 1);
     move = (move == ILLEGAL_MOVE) ? ILLEGAL_MOVE : game_network_move_index_to_net(game_settings, move);
     network_client_send_move(client, move);

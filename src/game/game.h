@@ -68,8 +68,8 @@ uint8_t game_network_player_from_net(const NetworkClient* client, uint8_t player
 uint8_t game_network_player_to_net(const NetworkClient* client, uint8_t player);
 uint8_t game_network_move_index_from_net(const GameSettings* game_settings, uint8_t move);
 uint8_t game_network_move_index_to_net(const GameSettings* game_settings, uint8_t move);
-int game_network_receive_move(const GameSettings* game_settings, const NetworkClient* client, GameState* game);
-void game_network_send_move(const GameSettings* game_settings, const NetworkClient* client, uint8_t move);
+int game_network_receive_move(const GameSettings* game_settings, NetworkClient* client, GameState* game);
+void game_network_send_move(const GameSettings* game_settings, NetworkClient* client, uint8_t move);
 
 // ui & strings
 

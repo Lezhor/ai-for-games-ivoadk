@@ -41,9 +41,18 @@ void game_init_triangles(board_height_t* board_heights, Triangle* out_triangles)
         out_triangles[i].clear_mask = (3ULL << out_triangles[i].shift_L)
                                     | (3ULL << out_triangles[i].shift_M)
                                     | (3ULL << out_triangles[i].shift_H);
-    }
 
-    // TODO: implement init jump back index
+        // find earliest triangle sharing the high corner
+        uint64_t h_mask = 3ULL << out_triangles[i].shift_H;
+        int jump_back = i + 1; // jump to next one if no prior triangle found
+        for (int j = 0; j < i; j++) {
+            if (out_triangles[j].clear_mask & h_mask) {
+                jump_back = j;
+                break;
+            }
+        }
+        out_triangles[i].jump_back = (uint64_t)(jump_back & 0x1F);
+    }
 }
 
 void game_init_settings(int32_t seed, GameSettings* out_game_settings) {

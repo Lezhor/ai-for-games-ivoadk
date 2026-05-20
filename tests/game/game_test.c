@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include "game/game.h"
 #include "game/game_internal.h"
 #include "minunit.h"
 
@@ -72,7 +73,6 @@ static char* test_apply_triangles(void) {
             // Cell 9 gets the '3' from Cell 5. All other cells are empty.
             .expected_v = CELL_VAL(9, 3) | SCORE_VAL(3) | SCORE_VAL(1)
         }
-            // TODO: test jump back value (continue or jump back immediately)
     };
 
     int num_cases = sizeof(cases) / sizeof(cases[0]);
@@ -80,6 +80,28 @@ static char* test_apply_triangles(void) {
     for (int i = 0; i < num_cases; i++) {
         mu_assert(cases[i].description,
                   assert_triangle_apply_correctly(&settings, cases[i].initial_v, cases[i].expected_v));
+    }
+
+    return 0;
+}
+
+static char* test_jump_back(void) {
+    board_height_t heights[BOARD_SIZE] = {
+        7, 2, 18, 11, 0, 14, 5, 12, 3, 9, 6, 17, 1, 13, 8, 15, 4, 10, 16
+    };
+
+    GameSettings settings;
+    game_init_triangles(heights, settings.triangles);
+
+    // note that if it can't jump back it goes to the next index
+    uint8_t expected[BOARD_TRIANGLE_COUNT] = {
+        1, 2, 3, 1, 1, 2, 1, 1, 9, 6, 1, 12, 8, 14, 6, 11, 13, 13, 15, 13, 13, 22, 13, 21
+    };
+
+    for (int i = 0; i < BOARD_TRIANGLE_COUNT; i++) {
+        char msg[64];
+        snprintf(msg, sizeof(msg), "Triangle %d jump_back mismatch. jmp: %d, exp: %d", i, settings.triangles[i].jump_back, expected[i]);
+        mu_assert(msg, settings.triangles[i].jump_back == expected[i]);
     }
 
     return 0;
@@ -156,6 +178,7 @@ static char* test_game_turn_set(void) {
 static char* test_all(void) {
     printf("Running game tests...\n");
     mu_run_test(test_apply_triangles);
+    mu_run_test(test_jump_back);
     mu_run_test(test_game_turn_advance);
     mu_run_test(test_game_turn_set);
     return 0;

@@ -1,5 +1,6 @@
 #include "network/network_client.h"
 #include "utils/array_utils.h"
+#include "utils/time_utils.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +8,6 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <sys/time.h>
 #include <assert.h>
 
 #define RESPONSE_MOVE_NULL    201
@@ -23,12 +23,6 @@ static void recv_exact(int sock, uint8_t* buffer, size_t length) {
         perror("Fatal Network Error: Failed to receive expected bytes");
         exit(EXIT_FAILURE);
     }
-}
-
-static uint64_t get_now_ms(void) {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (uint64_t)(tv.tv_sec) * 1000 + (uint64_t)(tv.tv_usec) / 1000;
 }
 
 void network_client_connect(const AgentConfig* config, NetworkClient* out_client) {
@@ -64,7 +58,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
 
     printf("TCP Handshake with Server...\n");
 
-    uint64_t start_time = get_now_ms();
+    uint64_t start_time = time_get_now_ms();
 
     uint8_t ping_out = 1;
     if (send(sock, &ping_out, 1, 0) != 1) {
@@ -75,7 +69,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     uint8_t ping_in;
     recv_exact(sock, &ping_in, 1);
 
-    uint64_t end_time = get_now_ms();
+    uint64_t end_time = time_get_now_ms();
     int latency = (int)(end_time - start_time);
 
     if (ping_in != 1) {
@@ -115,7 +109,7 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
     out_client->time_limit_sec = time_limit;
     out_client->latency_ms = latency;
     out_client->seed = random_seed;
-    out_client->input_request_timestamp = get_now_ms();
+    out_client->input_request_timestamp = time_get_now_ms();
 
     printf("--- Connected to Server ---\n");
     printf("Player Number : %d\n", out_client->player_number);
@@ -133,7 +127,7 @@ int network_client_receive_move(NetworkClient* client, Move* out_move) {
         exit(EXIT_FAILURE);
     }
 
-    client->input_request_timestamp = get_now_ms() - (uint64_t)(client->latency_ms / 2);
+    client->input_request_timestamp = time_get_now_ms() - (uint64_t)(client->latency_ms / 2);
 
     if (byte1 == RESPONSE_MOVE_NULL) {
         return 0; // its this players turn

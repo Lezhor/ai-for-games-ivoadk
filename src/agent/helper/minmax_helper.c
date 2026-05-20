@@ -1,4 +1,5 @@
 #include "minmax_helper.h"
+#include "utils/time_utils.h"
 #include <limits.h>
 
 #define WIN_SCORE 100000
@@ -9,14 +10,10 @@ static int evaluate(const GameState* state, uint8_t max_player, int depth) {
     int my_score = scores[max_player];
     (void)depth;
 
-    int max_opp_score = 0;
     int opponent_score_sum = 0;
     for (int i = 1; i <= 3; i++) {
         if (i != (int)max_player) {
             opponent_score_sum += scores[i];
-        }
-        if (i != (int)max_player && scores[i] > max_opp_score) {
-            max_opp_score = scores[i];
         }
     }
 
@@ -26,15 +23,23 @@ static int evaluate(const GameState* state, uint8_t max_player, int depth) {
         uint8_t winner = game_get_winner((GameState*)state, &win_score_val);
         if (winner == max_player) return WIN_SCORE + depth + my_score;
         if (winner != 0) return LOSS_SCORE - depth + my_score;
-        // if (winner == 0) return 0 + my_score;
     }
 
     return 2 * my_score - opponent_score_sum;
 }
 
-static int minmax_recursive(const GameSettings* settings, GameState* state, int depth, int alpha, int beta, uint8_t max_player) {
+static int minmax_recursive(const GameSettings* settings, GameState* state, int depth, int alpha, int beta, uint8_t max_player, uint64_t deadline_ms, bool* aborted, uint64_t* node_count) {
     if (depth <= 0 || game_finished_condition(state)) {
         return evaluate(state, max_player, depth);
+    }
+
+    // Periodically check if time is up
+    (*node_count)++;
+    if ((*node_count & 1023) == 0) {
+        if (time_get_now_ms() >= deadline_ms) {
+            *aborted = true;
+            return 0;
+        }
     }
 
     uint8_t current_player = (uint8_t)(state->player_turn);
@@ -53,7 +58,9 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
 
             GameState next_state = *state;
             game_take_move(settings, &next_state, current_player, move);
-            int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
+            int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count);
+            if (*aborted) return 0;
+
             if (eval > max_eval) max_eval = eval;
             if (eval > alpha) alpha = eval;
             if (beta <= alpha) break;
@@ -63,7 +70,8 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
         if (beta > alpha) {
             GameState next_state = *state;
             game_take_move(settings, &next_state, current_player, ILLEGAL_MOVE);
-            int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
+            int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count);
+            if (*aborted) return 0;
             if (eval > max_eval) max_eval = eval;
         }
 
@@ -78,7 +86,9 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
 
             GameState next_state = *state;
             game_take_move(settings, &next_state, current_player, move);
-            int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
+            int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count);
+            if (*aborted) return 0;
+
             if (eval < min_eval) min_eval = eval;
             if (eval < beta) beta = eval;
             if (beta <= alpha) break;
@@ -87,7 +97,8 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
         if (beta > alpha) {
             GameState next_state = *state;
             game_take_move(settings, &next_state, current_player, ILLEGAL_MOVE);
-            int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
+            int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count);
+            if (*aborted) return 0;
             if (eval < min_eval) min_eval = eval;
         }
 
@@ -95,7 +106,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
     }
 }
 
-uint8_t minmax_search(const GameSettings* settings, const GameState* state, int depth, uint8_t max_player) {
+uint8_t minmax_search(const GameSettings* settings, const GameState* state, int depth, uint8_t max_player, uint64_t deadline_ms, bool* aborted, uint64_t* node_count, int* max_eval_out) {
     uint8_t best_move = ILLEGAL_MOVE;
     int max_eval = INT_MIN;
     int alpha = INT_MIN;
@@ -114,7 +125,9 @@ uint8_t minmax_search(const GameSettings* settings, const GameState* state, int 
 
         GameState next_state = *state;
         game_take_move(settings, &next_state, current_player, move);
-        int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
+        int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count);
+        if (*aborted) return ILLEGAL_MOVE;
+
         if (eval > max_eval) {
             max_eval = eval;
             best_move = move;
@@ -122,13 +135,35 @@ uint8_t minmax_search(const GameSettings* settings, const GameState* state, int 
         if (eval > alpha) alpha = eval;
     }
 
-    // Illegal move last - only take it if it is STRICTLY better than legal moves
+    // Illegal move last
     GameState next_state = *state;
     game_take_move(settings, &next_state, current_player, ILLEGAL_MOVE);
-    int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player);
+    int eval = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count);
+    if (*aborted) return ILLEGAL_MOVE;
+
     if (eval > max_eval) {
+        max_eval = eval;
         best_move = ILLEGAL_MOVE;
     }
 
+    if (max_eval_out) *max_eval_out = max_eval;
     return best_move;
+}
+
+uint8_t minmax_search_iterative(const GameSettings* settings, const GameState* state, uint8_t max_player, uint64_t deadline_ms, int* out_depth_reached) {
+    uint8_t best_move_overall = ILLEGAL_MOVE;
+    uint64_t node_count = 0;
+
+    for (int depth = 1; depth <= 64; depth++) {
+        bool aborted = false;
+        int max_eval = 0;
+        uint8_t move = minmax_search(settings, state, depth, max_player, deadline_ms, &aborted, &node_count, &max_eval);
+
+        if (aborted) break;
+
+        best_move_overall = move;
+        if (out_depth_reached) *out_depth_reached = depth;
+    }
+
+    return best_move_overall;
 }

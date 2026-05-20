@@ -14,7 +14,6 @@
 #define RESPONSE_KICK_INVALID 207
 #define RESPONSE_KICK_TIMEOUT 208
 
-// TODO: replace with actual logo i want to use :)
 #define DUMMY_LOGO_B64 "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjIGi0AAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
 
 static void recv_exact(int sock, uint8_t* buffer, size_t length) {
@@ -79,7 +78,24 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
 
 
     dprintf(sock, "%s\n", config->agent_name);
-    dprintf(sock, "%s\n", DUMMY_LOGO_B64);
+
+    // Read logo from file and stream it
+    FILE* logo_file = fopen("logo.b64", "r");
+    if (logo_file) {
+        char buffer[1024];
+        while (fgets(buffer, sizeof(buffer), logo_file)) {
+            // Strip newline if fgets caught one from the file itself
+            size_t len = strlen(buffer);
+            if (len > 0 && buffer[len-1] == '\n') buffer[len-1] = '\0';
+            send(sock, buffer, strlen(buffer), 0);
+        }
+        fclose(logo_file);
+        send(sock, "\n", 1, 0);
+    } else {
+        // Fallback or warning if file missing
+        fprintf(stderr, "Warning: logo.b64 not found, sending white logo\n");
+        dprintf(sock, "%s\n", DUMMY_LOGO_B64);
+    }
 
     printf("Sent Name and Image to Server!\n");
     printf("Waiting for Game Config...\n");

@@ -62,7 +62,6 @@ void game_apply_triangles(const GameSettings* game_settings, GameState* game) {
             // put middle stone to high spot
             game->v |= (M << shift_H);
 
-            // TODO: is jump back correct? will the rules change maybe?
             i = t.jump_back;
         } else {
             i++;

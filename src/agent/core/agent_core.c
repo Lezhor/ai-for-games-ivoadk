@@ -46,7 +46,7 @@ void agent_play_loop(AgentContext* ctx, Agent* agent) {
 #endif
         }
 
-        uint64_t deadline = ctx->client.input_request_timestamp + (uint64_t)ctx->client.time_limit_sec * 1000 - (uint64_t)ctx->client.latency_ms - 50;
+        uint64_t deadline = ctx->client.input_request_timestamp + (uint64_t)ctx->client.time_limit_sec * 1000 - (uint64_t)ctx->client.latency_ms - 200;
         uint8_t move = agent->get_move(agent, &ctx->game_settings, &ctx->game, (uint8_t)(ctx->client.player_number + 1), deadline);
         game_network_send_move(&ctx->game_settings, &ctx->client, move);
     }

@@ -14,7 +14,7 @@
 #define RESPONSE_KICK_INVALID 207
 #define RESPONSE_KICK_TIMEOUT 208
 
-#define DUMMY_LOGO_B64 "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjIGi0AAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
+#define DUMMY_ICON_BASE64 "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjIGi0AAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1QAAAABJRU5ErkJggg=="
 
 static void recv_exact(int sock, uint8_t* buffer, size_t length) {
     ssize_t bytes_received = recv(sock, buffer, length, MSG_WAITALL); // MSG_WAITALL cuz else it might return less bytes
@@ -22,6 +22,29 @@ static void recv_exact(int sock, uint8_t* buffer, size_t length) {
         perror("Fatal Network Error: Failed to receive expected bytes");
         exit(EXIT_FAILURE);
     }
+}
+
+static int send_icon_from_file(int sock, const char* path) {
+    if (path == NULL) {
+        return 0;
+    }
+
+    FILE* icon_file = fopen(path, "r");
+    if (!icon_file) {
+        return 0;
+    }
+
+    char buffer[1024];
+    while (fgets(buffer, sizeof(buffer), icon_file)) {
+        size_t len = strlen(buffer);
+        if (len > 0 && buffer[len - 1] == '\n') {
+            buffer[len - 1] = '\0';
+        }
+        send(sock, buffer, strlen(buffer), 0);
+    }
+
+    fclose(icon_file);
+    return 1;
 }
 
 void network_client_connect(const AgentConfig* config, NetworkClient* out_client) {
@@ -79,23 +102,13 @@ void network_client_connect(const AgentConfig* config, NetworkClient* out_client
 
     dprintf(sock, "%s\n", config->agent_name);
 
-    // Read logo from file and stream it
-    FILE* logo_file = fopen("logo.b64", "r");
-    if (logo_file) {
-        char buffer[1024];
-        while (fgets(buffer, sizeof(buffer), logo_file)) {
-            // Strip newline if fgets caught one from the file itself
-            size_t len = strlen(buffer);
-            if (len > 0 && buffer[len-1] == '\n') buffer[len-1] = '\0';
-            send(sock, buffer, strlen(buffer), 0);
+    if (!send_icon_from_file(sock, config->icon_path)) {
+        if (config->icon_path) {
+            fprintf(stderr, "Warning: icon file %s not found, falling back to blank icon\n", config->icon_path);
         }
-        fclose(logo_file);
-        send(sock, "\n", 1, 0);
-    } else {
-        // Fallback or warning if file missing
-        fprintf(stderr, "Warning: logo.b64 not found, sending white logo\n");
-        dprintf(sock, "%s\n", DUMMY_LOGO_B64);
+        send(sock, DUMMY_ICON_BASE64, strlen(DUMMY_ICON_BASE64), 0);
     }
+    send(sock, "\n", 1, 0);
 
     printf("Sent Name and Image to Server!\n");
     printf("Waiting for Game Config...\n");

@@ -13,6 +13,7 @@ AgentConfig parse_args(int argc, char* argv[]) {
     config.host = DEFAULT_HOST;
     config.port = DEFAULT_PORT;
     config.agent_name = DEFAULT_NAME;
+    config.icon_path = NULL;
 
     if (argc > 1) {
         config.host = argv[1];

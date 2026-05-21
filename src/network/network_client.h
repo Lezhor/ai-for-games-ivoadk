@@ -6,6 +6,7 @@ typedef struct AgentConfig {
     const char* host;
     int port;
     const char* agent_name;
+    const char* icon_path;
 } AgentConfig;
 
 typedef struct NetworkClient {
@@ -32,7 +33,7 @@ typedef struct Move {
  * 1. Client sends 0x01 (Ping).
  * 2. Server replies with 0x01 (If different, version mismatch/crash).
  * 3. Client sends Team Name string followed by '\n'.
- * 4. Client sends Base64 encoded 256x256 PNG Logo followed by '\n'.
+ * 4. Client sends Base64 encoded 256x256 PNG icon followed by '\n'.
  * 5. Server replies with 1 byte (Config).
  * - Lowest 2 bits = Player Number.
  * - Remaining bits = Time Limit in seconds.

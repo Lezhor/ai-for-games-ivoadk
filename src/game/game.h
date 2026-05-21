@@ -49,7 +49,7 @@ typedef struct {
 #define GAME_MASK_PLAYER_TURN      (uint64_t) 0x0000060000000000
 #define GAME_MASK_SCORES           (uint64_t) 0xFFFFF8C000000000
 
-#define GAME_SCORE_TO_WIN          32
+#define GAME_SCORE_TO_WIN          12
 
 // board empty, all players active, 1st players turn, 0 score
 #define GAME_STATE_DEFAULT_VALUE   (uint64_t) 0x000003C000000000

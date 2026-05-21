@@ -30,7 +30,7 @@ void agent_init(AgentContext* ctx, int argc, char* argv[], const char* agent_nam
 #endif
 }
 
-void agent_loop(AgentContext* ctx, AgentStrategyFn strategy, void* strategy_data) {
+void agent_play_loop(AgentContext* ctx, Agent* agent) {
     char game_str[128];
 #ifdef USE_TUI
     char board_str[256];
@@ -46,7 +46,8 @@ void agent_loop(AgentContext* ctx, AgentStrategyFn strategy, void* strategy_data
 #endif
         }
 
-        uint8_t move = strategy(ctx, strategy_data);
+        uint64_t deadline = ctx->client.input_request_timestamp + (uint64_t)ctx->client.time_limit_sec * 1000 - (uint64_t)ctx->client.latency_ms - 200;
+        uint8_t move = agent->get_move(agent, &ctx->game_settings, &ctx->game, (uint8_t)(ctx->client.player_number + 1), deadline);
         game_network_send_move(&ctx->game_settings, &ctx->client, move);
     }
 }

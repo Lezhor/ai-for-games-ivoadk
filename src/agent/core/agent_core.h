@@ -1,9 +1,8 @@
 #ifndef AGENT_CORE_H
 #define AGENT_CORE_H
 
+#include "agent.h"
 #include "cli.h"
-#include "game/game.h"
-#include "network/network_client.h"
 
 typedef struct {
     AgentConfig config;
@@ -11,9 +10,6 @@ typedef struct {
     GameSettings game_settings;
     GameState game;
 } AgentContext;
-
-// getmove callback
-typedef uint8_t (*AgentStrategyFn)(AgentContext* ctx, void* strategy_data);
 
 /**
  * Initializes the agent context, connects to the server, and sets up the game state
@@ -26,11 +22,10 @@ typedef uint8_t (*AgentStrategyFn)(AgentContext* ctx, void* strategy_data);
 void agent_init(AgentContext* ctx, int argc, char* argv[], const char* agent_name, const char* strategy_description);
 
 /**
- * standard agent loop
+ * standard agent loop for network play
  * @param ctx agent context
- * @param strategy get_move function
- * @param strategy_data Optional user data to pass to the strategy function.
+ * @param agent The agent interface to use for moves
  */
-void agent_loop(AgentContext* ctx, AgentStrategyFn strategy, void* strategy_data);
+void agent_play_loop(AgentContext* ctx, Agent* agent);
 
 #endif

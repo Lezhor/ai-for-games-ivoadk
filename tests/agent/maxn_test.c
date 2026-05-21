@@ -1,4 +1,5 @@
-#include "agent/helper/maxn_helper.h"
+#include "agent/logic/maxn_logic.h"
+#include "agent/eval/maxn/eval_maxn_hardcoded.h"
 #include "game/game.h"
 #include "minunit.h"
 #include <stdio.h>
@@ -14,10 +15,15 @@ static char* test_maxn_basic(void) {
     state.v = GAME_STATE_DEFAULT_VALUE;
     state.player_turn = 1; // P1's turn
 
+    Evaluator* eval = evaluator_create_maxn_hardcoded();
+    Agent* agent = agent_create_maxn(eval, 1);
+
     // Search at depth 1 should return a legal move
-    uint8_t move = maxn_search(&settings, &state, 1, 1);
+    uint8_t move = agent->get_move(agent, &settings, &state, 1, 0);
     mu_assert("MaxN should return a valid move index (0-18)", move <= 18 || move == ILLEGAL_MOVE);
     
+    agent->free(agent);
+    eval->free(eval);
     return 0;
 }
 
@@ -30,10 +36,15 @@ static char* test_maxn_scoring(void) {
     state.p1_score = 30; // P1 is close to winning (32)
     state.player_turn = 1;
 
+    Evaluator* eval = evaluator_create_maxn_hardcoded();
+    Agent* agent = agent_create_maxn(eval, 2);
+
     // With depth 2, if there's a way to score, it should prioritize it
-    uint8_t move = maxn_search(&settings, &state, 2, 1);
+    uint8_t move = agent->get_move(agent, &settings, &state, 1, 0);
     mu_assert("MaxN should return a move", move <= 19);
 
+    agent->free(agent);
+    eval->free(eval);
     return 0;
 }
 

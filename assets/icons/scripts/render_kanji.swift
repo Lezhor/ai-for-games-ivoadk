@@ -4,7 +4,7 @@ import Foundation
 
 // this is 100% AI generated obviously :/
 
-func renderKanji(text: String, size: CGFloat, outputPath: String) {
+func renderKanji(text: String, size: CGFloat, fontName: String, outputPath: String) {
     let imageSize = NSSize(width: size, height: size)
     let offscreenRep = NSBitmapImageRep(bitmapDataPlanes: nil,
                                        pixelsWide: Int(size),
@@ -26,7 +26,7 @@ func renderKanji(text: String, size: CGFloat, outputPath: String) {
     NSRect(origin: .zero, size: imageSize).fill(using: .copy)
 
     // Setup text attributes
-    let font = NSFont(name: "Hiragino Sans W6", size: size * 0.8) ?? NSFont.systemFont(ofSize: size * 0.8)
+    let font = NSFont(name: fontName, size: size * 0.8) ?? NSFont.systemFont(ofSize: size * 0.8)
     let style = NSMutableParagraphStyle()
     style.alignment = .center
 
@@ -51,15 +51,16 @@ func renderKanji(text: String, size: CGFloat, outputPath: String) {
 
     if let pngData = offscreenRep.representation(using: .png, properties: [:]) {
         try? pngData.write(to: URL(fileURLWithPath: outputPath))
-        print("Successfully rendered \(text) to \(outputPath)")
+        print("Successfully rendered \(text) using \(fontName) to \(outputPath)")
     } else {
         print("Failed to create PNG data")
     }
 }
 
 let args = CommandLine.arguments
-if args.count < 3 {
-    print("Usage: swift render_kanji.swift <text> <output_path>")
+if args.count < 4 {
+    print("Usage: swift render_kanji.swift <text> <font_name> <output_path>")
 } else {
-    renderKanji(text: args[1], size: 256, outputPath: args[2])
+    renderKanji(text: args[1], size: 256, fontName: args[2], outputPath: args[3])
 }
+

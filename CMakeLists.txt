@@ -118,7 +118,10 @@ file(GLOB_RECURSE CORE_SUB_FILES
     "${CMAKE_SOURCE_DIR}/src/network/*.c"
     "${CMAKE_SOURCE_DIR}/src/utils/*.c"
     "${CMAKE_SOURCE_DIR}/src/game/*.c"
-    "${CMAKE_SOURCE_DIR}/src/agent/helper/*.c"
+    "${CMAKE_SOURCE_DIR}/src/agent/core/*.c"
+    "${CMAKE_SOURCE_DIR}/src/agent/logic/*.c"
+    "${CMAKE_SOURCE_DIR}/src/agent/eval/minmax/*.c"
+    "${CMAKE_SOURCE_DIR}/src/agent/eval/maxn/*.c"
 )
 set(CORE_FILES ${CORE_ROOT_FILES} ${CORE_SUB_FILES})
 

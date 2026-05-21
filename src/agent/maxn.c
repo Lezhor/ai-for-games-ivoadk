@@ -12,6 +12,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    // TODO: depth can't be set like this
     int depth = 6;
     if (argc > 4) {
         depth = atoi(argv[4]);
@@ -27,7 +28,8 @@ int main(int argc, char *argv[]) {
     }
 
     // 3. Initialize network context
-    AgentContext ctx;
+    AgentContext ctx = {0};
+    ctx.config.icon_path = "./assets/icons/smiley.b64";
     agent_init(&ctx, argc, argv, "MaxN", "MaxN search with Immediate Win Pruning. Each player maximizes their own score...");
 
     // 4. Run the network play loop

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 void agent_init(AgentContext* ctx, int argc, char* argv[], const char* agent_name, const char* strategy_description) {
-    ctx->config = parse_args(argc, argv);
+    parse_args(argc, argv, &ctx->config);
 
     printf("--- IVOADK %s Client ---\n", agent_name);
     printf("Target Host: %s\n", ctx->config.host);

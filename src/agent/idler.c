@@ -3,7 +3,8 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-    AgentContext ctx;
+    AgentContext ctx = {0};
+    ctx.config.icon_path = "./assets/icons/tree.b64";
 
     agent_init(&ctx, argc, argv, "Idler", "Play illegal move and break immediately");
 

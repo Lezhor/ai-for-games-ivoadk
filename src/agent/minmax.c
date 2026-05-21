@@ -21,7 +21,8 @@ int main(int argc, char *argv[]) {
     }
 
     // 3. Initialize network context
-    AgentContext ctx;
+    AgentContext ctx = {0};
+    ctx.config.icon_path = "./assets/icons/smiley.b64";
     agent_init(&ctx, argc, argv, "MinMax Paranoid", "Simple MinMax search with Alpha-Beta Pruning. Treats both opponents as one...");
 
     // 4. Run the network play loop

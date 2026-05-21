@@ -3,6 +3,6 @@
 
 #include "network/network_client.h"
 
-AgentConfig parse_args(int argc, char* argv[]);
+void parse_args(int argc, char* argv[], AgentConfig* config);
 
 #endif

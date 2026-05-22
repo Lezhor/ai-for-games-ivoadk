@@ -7,13 +7,6 @@
 #define WIN_SCORE 100000.0
 #define LOSS_SCORE -100000.0
 
-#ifdef AGENT_TRAINING
-static double get_random_double(void) {
-    // Simple random double between -1.0 and 1.0 using the system rand() for now
-    // In a production EA, you might want a better RNG or Gaussian noise.
-    return ((double)rand() / (double)RAND_MAX) * 2.0 - 1.0;
-}
-#endif
 
 static void evaluate_linear(Evaluator* self, const GameSettings* settings, const GameState* state, double* out_scores) {
     (void)settings;
@@ -35,8 +28,9 @@ static int linear_train(Evaluator* self, void* training_data) {
     }
 
     for (int i = 0; i < 3; i++) {
-        if (((double)rand() / (double)RAND_MAX) < params->mutation_rate) {
-            st->weights[i] += get_random_double() * params->mutation_scale;
+        if (lcg_next_double(params->rng) < params->mutation_rate) {
+            double noise = params->use_gaussian ? lcg_next_gaussian(params->rng) : lcg_next_double_range(params->rng, -1.0, 1.0);
+            st->weights[i] += noise * params->mutation_scale;
         }
     }
     return 0;

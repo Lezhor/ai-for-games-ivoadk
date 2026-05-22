@@ -2,7 +2,6 @@
 #include "utils/time_utils.h"
 #ifdef AGENT_TRAINING
 #include "game/game.h"
-#include "agent/eval/minmax/eval_minmax_linear.h"
 #include "game/game_internal.h"
 #include "utils/lcg.h"
 #endif
@@ -11,12 +10,19 @@
 #include <time.h>
 #include <string.h>
 
-#define POPULATION_SIZE 30
-#define GENERATIONS 500
+#define POPULATION_SIZE 40
+#define GENERATIONS 1000
 #define GAMES_PER_AGENT 20
-#define ELITISM_COUNT 4
-#define MUTATION_RATE 0.3
-#define MUTATION_SCALE 0.2
+#define ELITISM_COUNT 6
+
+// Mutation Parameter Ranges (will be lerped over generations)
+#define MUTATION_RATE_START 0.5
+#define MUTATION_RATE_END 0.1
+#define MUTATION_SCALE_START 0.5
+#define MUTATION_SCALE_END 0.05
+#define SURVIVAL_RATE_START 0.1
+#define SURVIVAL_RATE_END 0.4
+
 
 #ifdef AGENT_TRAINING
 typedef struct {
@@ -31,6 +37,10 @@ static int compare_individuals(const void* a, const void* b) {
     if (ind_a->fitness < ind_b->fitness) return 1;
     if (ind_a->fitness > ind_b->fitness) return -1;
     return 0;
+}
+
+static double lerp(double start, double end, double t) {
+    return start + t * (end - start);
 }
 
 static void run_headless_game(int32_t seed, Individual* p1, Individual* p2, Individual* p3) {
@@ -74,13 +84,18 @@ int run_ea_training_loop(int argc, char* argv[], AgentFactory factory, const cha
         population[i].fitness = 0;
 
         // Initial randomization
-        EAMutationParams params = {1.0, 1.0, NULL};
+        EAMutationParams params = {1.0, 1.0, NULL, &rng, false};
         population[i].eval->train(population[i].eval, &params);
     }
 
     printf("Starting EA Training: %d generations, population size %d\n", GENERATIONS, POPULATION_SIZE);
 
     for (int gen = 0; gen < GENERATIONS; gen++) {
+        double t = (GENERATIONS > 1) ? (double)gen / (double)(GENERATIONS - 1) : 1.0;
+        double current_mutation_rate = lerp(MUTATION_RATE_START, MUTATION_RATE_END, t);
+        double current_mutation_scale = lerp(MUTATION_SCALE_START, MUTATION_SCALE_END, t);
+        double current_survival_rate = lerp(SURVIVAL_RATE_START, SURVIVAL_RATE_END, t);
+
         // Reset fitness
         for (int i = 0; i < POPULATION_SIZE; i++) population[i].fitness = 0;
 
@@ -109,14 +124,22 @@ int run_ea_training_loop(int argc, char* argv[], AgentFactory factory, const cha
 
         // Evolution
         for (int i = ELITISM_COUNT; i < POPULATION_SIZE; i++) {
-            // Pick a parent from the elite
-            int parent_idx = (int)lcg_next_int_n(&rng, ELITISM_COUNT);
-
-            // Mutate loser towards parent
             EAMutationParams params;
-            params.mutation_rate = MUTATION_RATE;
-            params.mutation_scale = MUTATION_SCALE;
-            params.template_state = population[parent_idx].eval->state;
+            params.mutation_rate = current_mutation_rate;
+            params.mutation_scale = current_mutation_scale;
+            params.rng = &rng;
+            params.use_gaussian = true;
+
+            // Decide if this individual survives (mutated) or is replaced by an elite
+            double r = lcg_next_double(&rng);
+            if (r < current_survival_rate) {
+                // Survival: Mutate in place
+                params.template_state = NULL;
+            } else {
+                // Replacement: Copy from a random elite then mutate
+                int parent_idx = (int)lcg_next_int_n(&rng, ELITISM_COUNT);
+                params.template_state = population[parent_idx].eval->state;
+            }
 
             population[i].eval->train(population[i].eval, &params);
         }

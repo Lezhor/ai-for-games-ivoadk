@@ -1,15 +1,11 @@
 #include "eval_minmax_linear_complex.h"
 #include "game/game_internal.h"
+#include "utils/lcg.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
 
-#ifdef AGENT_TRAINING
-static double get_random_double(void) {
-    return ((double)rand() / (double)RAND_MAX) * 2.0 - 1.0;
-}
-#endif
 
 static void evaluate_complex(Evaluator* self, const GameSettings* settings, const GameState* state, double* out_scores) {
     (void)settings;
@@ -78,8 +74,9 @@ static int complex_train(Evaluator* self, void* training_data) {
     }
 
     for (int i = 0; i < LINEAR_COMPLEX_WEIGHT_COUNT; i++) {
-        if (((double)rand() / (double)RAND_MAX) < params->mutation_rate) {
-            st->weights[i] += get_random_double() * params->mutation_scale;
+        if (lcg_next_double(params->rng) < params->mutation_rate) {
+            double noise = params->use_gaussian ? lcg_next_gaussian(params->rng) : lcg_next_double_range(params->rng, -1.0, 1.0);
+            st->weights[i] += noise * params->mutation_scale;
         }
     }
     return 0;

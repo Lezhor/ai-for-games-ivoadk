@@ -1,9 +1,11 @@
 #ifndef TRAIN_CORE_H
 #define TRAIN_CORE_H
 
+#include <stdbool.h>
 #ifdef AGENT_TRAINING
 #include "agent/core/agent.h"
 #include "agent/eval/evaluator.h"
+#include "utils/lcg.h"
 
 /**
  * Generic parameters for evolutionary training.
@@ -12,6 +14,8 @@ typedef struct {
     double mutation_rate;
     double mutation_scale;
     const void* template_state;
+    lcg_t* rng;
+    bool use_gaussian;
 } EAMutationParams;
 
 /**

@@ -10,10 +10,11 @@
 #include <time.h>
 #include <string.h>
 
-#define POPULATION_SIZE 40
-#define GENERATIONS 1000
-#define GAMES_PER_AGENT 20
-#define ELITISM_COUNT 6
+#define POPULATION_SIZE 50
+#define GENERATIONS 10
+#define PRINT_EVERY_X_GEN 1
+#define GAMES_PER_AGENT 500
+#define ELITISM_COUNT 10
 
 // Mutation Parameter Ranges (will be lerped over generations)
 #define MUTATION_RATE_START 0.5
@@ -117,7 +118,7 @@ int run_ea_training_loop(int argc, char* argv[], AgentFactory factory, const cha
         // Sort by fitness
         qsort(population, POPULATION_SIZE, sizeof(Individual), compare_individuals);
 
-        if (gen % 50 == 0 && gen != 0) {
+        if (gen % PRINT_EVERY_X_GEN == 0 && gen != 0) {
             printf("Gen %d: Best Fitness = %.2f, Weights:\n", gen, population[0].fitness);
             population[0].eval->save(population[0].eval, "/dev/stdout");
         }

@@ -1,3 +1,4 @@
+#include "agent/eval/minmax/eval_minmax_linear_complex.h"
 #include "game/game.h"
 #include "game/game_internal.h"
 #include "agent/logic/random_logic.h"
@@ -36,7 +37,10 @@ Agent* create_agent(const char* type, Evaluator** out_eval) {
         *out_eval = evaluator_create_minmax_hardcoded();
         return agent_create_minmax(*out_eval, 4, false);
     } else if (strcmp(type, "minmax_linear") == 0) {
-        *out_eval = evaluator_create_minmax_linear(NULL);
+        *out_eval = evaluator_create_minmax_linear("models/minmax_linear/best.txt");
+        return agent_create_minmax(*out_eval, 4, false);
+    } else if (strcmp(type, "minmax_linear_complex") == 0) {
+        *out_eval = evaluator_create_minmax_linear_complex("models/minmax_linear_complex/best.txt");
         return agent_create_minmax(*out_eval, 4, false);
     } else if (strcmp(type, "maxn") == 0) {
         *out_eval = evaluator_create_maxn_hardcoded();
@@ -139,7 +143,7 @@ int main(int argc, char* argv[]) {
 
         // Record to CSV
         if (csv) {
-            fprintf(csv, "%s,%s,%s,%u,%u,%u\n", 
+            fprintf(csv, "%s,%s,%s,%u,%u,%u\n",
                 p_handles[1].type_name, p_handles[2].type_name, p_handles[3].type_name,
                 points[1], points[2], points[3]);
         }
@@ -179,15 +183,15 @@ int main(int argc, char* argv[]) {
     printf("%-20s | %-10s | %-10s | %-10s\n", "Agent Type", "Games", "Total Pts", "Avg Pts");
     printf("----------------------------------------------------------------------\n");
     for (int i = 0; i < stats_count; i++) {
-        printf("%-20s | %-10llu | %-10llu | %-10.2f\n", 
-            stats[i].name, 
-            (unsigned long long)stats[i].games_played, 
-            (unsigned long long)stats[i].tournament_points, 
+        printf("%-20s | %-10llu | %-10llu | %-10.2f\n",
+            stats[i].name,
+            (unsigned long long)stats[i].games_played,
+            (unsigned long long)stats[i].tournament_points,
             (double)stats[i].tournament_points / (double)stats[i].games_played);
     }
     printf("----------------------------------------------------------------------\n");
-    printf("Total time: %.2fs (%.2f ms/game)\n", 
-        (double)(end_time - start_time) / 1000.0, 
+    printf("Total time: %.2fs (%.2f ms/game)\n",
+        (double)(end_time - start_time) / 1000.0,
         (double)(end_time - start_time) / num_games);
 
     for (int i = 0; i < pool_size; i++) free(agent_pool[i]);

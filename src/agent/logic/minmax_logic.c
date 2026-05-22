@@ -158,7 +158,7 @@ static uint8_t minmax_get_move(Agent* self, const GameSettings* settings, const 
         depth_reached = internal->max_depth;
     }
 
-#ifdef NDEBUG
+#ifndef NDEBUG
     printf("Depth reached: %d, nodes: %llu\n", depth_reached, node_count);
 #endif
     (void)depth_reached;

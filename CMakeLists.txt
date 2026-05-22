@@ -9,7 +9,6 @@ option(ENABLE_LTO       "Enable link-time optimization" OFF)
 option(ENABLE_GUI       "Enable GUI using raylib" OFF)
 option(ENABLE_TUI       "Enable TUI using ncurses" OFF)
 option(ENABLE_GCOV      "Enable GCOV code coverage" OFF)
-option(ENABLE_TRAINING  "Enable agent training executable generation" OFF)
 
 if(ENABLE_LTO)
     include(CheckIPOSupported)
@@ -127,6 +126,11 @@ file(GLOB_RECURSE CORE_SUB_FILES
 set(CORE_FILES ${CORE_ROOT_FILES} ${CORE_SUB_FILES})
 
 # --------------------------------------------------------
+# Training Files
+# --------------------------------------------------------
+file(GLOB TRAIN_FILES "${CMAKE_SOURCE_DIR}/src/train/*.c")
+
+# --------------------------------------------------------
 # Agent Executables
 # --------------------------------------------------------
 function(add_agent_executable AGENT_NAME)
@@ -187,7 +191,7 @@ function(add_train_executable AGENT_NAME)
     set(TARGET_NAME "train-${AGENT_NAME}")
     set(AGENT_FILE "${CMAKE_SOURCE_DIR}/src/agent/${AGENT_NAME}.c")
 
-    add_executable(${TARGET_NAME} ${CORE_FILES} ${AGENT_FILE})
+    add_executable(${TARGET_NAME} ${CORE_FILES} ${AGENT_FILE} ${TRAIN_FILES})
     target_link_libraries(${TARGET_NAME} PRIVATE core)
 
     # Inject the AGENT_TRAINING flag!
@@ -199,12 +203,12 @@ endfunction()
 # Register your Agents here!
 add_agent_executable(idler)
 add_agent_executable(randomizer)
-add_agent_executable(minmax)
+add_agent_executable(minmax_hardcoded)
+add_agent_executable(minmax_linear)
 add_agent_executable(maxn)
 
-if(ENABLE_TRAINING)
-    add_train_executable(minmax)
-endif()
+add_train_executable(minmax_linear)
+
 # TODO: add_agent_executable(human)
 
 

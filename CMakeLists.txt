@@ -211,6 +211,12 @@ add_train_executable(minmax_linear)
 
 # TODO: add_agent_executable(human)
 
+# --------------------------------------------------------
+# Match Runner
+# --------------------------------------------------------
+add_executable(match src/agent/match.c ${CORE_FILES})
+target_link_libraries(match PRIVATE core)
+
 
 # --------------------------------------------------------
 # Tests

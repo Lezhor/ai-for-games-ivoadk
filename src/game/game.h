@@ -59,6 +59,7 @@ void game_init_settings(int32_t seed, GameSettings* out_game_settings);
 void game_take_move(const GameSettings* game_settings, GameState* game, uint8_t player, uint8_t move);
 
 int game_finished_condition(GameState* game);
+void get_tournament_scores(GameState* game, uint8_t out_scores[4]);
 uint8_t game_get_winner(GameState* game, uint8_t* out_winner_score);
 int game_get_move_count(GameState* game);
 

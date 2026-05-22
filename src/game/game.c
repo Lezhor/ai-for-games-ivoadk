@@ -172,6 +172,27 @@ int game_finished_condition(GameState* game) {
     return 0;
 }
 
+/**
+ * 2 points for first player, 1 for second and 0 for last player.
+ * If there is a tie both players get the lower score. (e.g. tie for first place means 1, 1, 0 points)
+ */
+void get_tournament_scores(GameState* game, uint8_t out_scores[4]) {
+    // TODO: is there a more efficient bit manipulation implementation?
+    uint8_t scores[4] = {0, game->p1_score, game->p2_score, game->p3_score};
+
+    for (int i = 1; i <= 3; i++) {
+        uint8_t tournament_pts = 0;
+        for (int j = 1; j <= 3; j++) {
+            if (i == j) continue;
+            if (scores[i] > scores[j]) {
+                tournament_pts++;
+            }
+        }
+        out_scores[i] = tournament_pts;
+    }
+}
+
+// TODO: don't use this anymore - use actual points (2,1,0) for first, second, third
 uint8_t game_get_winner(GameState* game, uint8_t* out_winner_score) {
     uint8_t winner = 1;
     uint8_t max_score = game->p1_score;

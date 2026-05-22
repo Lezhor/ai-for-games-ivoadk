@@ -1,12 +1,30 @@
 #include "core/agent_core.h"
 #include "logic/minmax_logic.h"
 #include "eval/minmax/eval_minmax_hardcoded.h"
+#include "eval/minmax/eval_minmax_linear.h"
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef AGENT_TRAINING
+#include "train/train_core.h"
+
+static Agent* minmax_linear_factory(Evaluator** out_eval) {
+    *out_eval = evaluator_create_minmax_linear(NULL);
+    return agent_create_minmax(*out_eval, 4, false); // Lower depth for faster training
+}
+#endif
+
 int main(int argc, char *argv[]) {
+#ifdef AGENT_TRAINING
+    return run_ea_training_loop(argc, argv, minmax_linear_factory);
+#else
     // 1. Create the evaluator
-    Evaluator* eval = evaluator_create_minmax_hardcoded();
+    // Try to load the trained model if it exists, otherwise fallback to hardcoded
+    Evaluator* eval = evaluator_create_minmax_linear("models/minmax/best_linear.txt");
+    if (!eval) {
+        eval = evaluator_create_minmax_hardcoded();
+    }
+    
     if (!eval) {
         fprintf(stderr, "Failed to create evaluator\n");
         return EXIT_FAILURE;
@@ -23,14 +41,15 @@ int main(int argc, char *argv[]) {
     // 3. Initialize network context
     AgentContext ctx = {0};
     ctx.config.icon_path = "./assets/icons/smiley.b64";
-    agent_init(&ctx, argc, argv, "MinMax Paranoid", "Simple MinMax search with Alpha-Beta Pruning. Treats both opponents as one...");
+    agent_init(&ctx, argc, argv, "MinMax Linear", "MinMax search with Alpha-Beta Pruning using a trained linear heuristic.");
 
     // 4. Run the network play loop
     agent_play_loop(&ctx, agent);
 
-    // 5. Cleanup (Unreachable in current loop, but good for completeness)
+    // 5. Cleanup
     agent->free(agent);
     eval->free(eval);
 
     return EXIT_SUCCESS;
+#endif
 }

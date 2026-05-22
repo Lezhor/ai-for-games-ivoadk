@@ -9,6 +9,7 @@ option(ENABLE_LTO       "Enable link-time optimization" OFF)
 option(ENABLE_GUI       "Enable GUI using raylib" OFF)
 option(ENABLE_TUI       "Enable TUI using ncurses" OFF)
 option(ENABLE_GCOV      "Enable GCOV code coverage" OFF)
+option(ENABLE_TRAINING  "Enable agent training executable generation" OFF)
 
 if(ENABLE_LTO)
     include(CheckIPOSupported)
@@ -179,11 +180,31 @@ function(add_agent_executable AGENT_NAME)
     message(STATUS "Agent executable created: ${TARGET_NAME}")
 endfunction()
 
+# --------------------------------------------------------
+# Training Executables
+# --------------------------------------------------------
+function(add_train_executable AGENT_NAME)
+    set(TARGET_NAME "train-${AGENT_NAME}")
+    set(AGENT_FILE "${CMAKE_SOURCE_DIR}/src/agent/${AGENT_NAME}.c")
+
+    add_executable(${TARGET_NAME} ${CORE_FILES} ${AGENT_FILE})
+    target_link_libraries(${TARGET_NAME} PRIVATE core)
+
+    # Inject the AGENT_TRAINING flag!
+    target_compile_definitions(${TARGET_NAME} PRIVATE AGENT_TRAINING)
+
+    message(STATUS "Train executable created: ${TARGET_NAME}")
+endfunction()
+
 # Register your Agents here!
 add_agent_executable(idler)
 add_agent_executable(randomizer)
 add_agent_executable(minmax)
 add_agent_executable(maxn)
+
+if(ENABLE_TRAINING)
+    add_train_executable(minmax)
+endif()
 # TODO: add_agent_executable(human)
 
 

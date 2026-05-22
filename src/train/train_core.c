@@ -4,15 +4,16 @@
 #include "game/game.h"
 #include "agent/eval/minmax/eval_minmax_linear.h"
 #include "game/game_internal.h"
+#include "utils/lcg.h"
 #endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
 
-#define POPULATION_SIZE 20
-#define GENERATIONS 100
-#define GAMES_PER_AGENT 5
+#define POPULATION_SIZE 30
+#define GENERATIONS 500
+#define GAMES_PER_AGENT 20
 #define ELITISM_COUNT 4
 #define MUTATION_RATE 0.3
 #define MUTATION_SCALE 0.2
@@ -64,6 +65,9 @@ int run_ea_training_loop(int argc, char* argv[], AgentFactory factory, const cha
     (void)argc; (void)argv;
     srand((unsigned int)time(NULL));
 
+    lcg_t rng;
+    lcg_set_seed(&rng, (uint64_t)time(NULL));
+
     Individual population[POPULATION_SIZE];
     for (int i = 0; i < POPULATION_SIZE; i++) {
         population[i].agent = factory(&population[i].eval);
@@ -82,24 +86,31 @@ int run_ea_training_loop(int argc, char* argv[], AgentFactory factory, const cha
 
         // Round robin (simplified: just random triplets)
         for (int match = 0; match < POPULATION_SIZE * GAMES_PER_AGENT; match++) {
-            int i1 = rand() % POPULATION_SIZE;
-            int i2 = rand() % POPULATION_SIZE;
-            int i3 = rand() % POPULATION_SIZE;
-            if (i1 == i2 || i2 == i3 || i1 == i3) continue;
+            // Pick 3 unique indices without retries
+            int i1 = (int)lcg_next_int_n(&rng, POPULATION_SIZE);
+            int i2 = (int)lcg_next_int_n(&rng, POPULATION_SIZE - 1);
+            int i3 = (int)lcg_next_int_n(&rng, POPULATION_SIZE - 2);
 
-            run_headless_game((int32_t)rand(), &population[i1], &population[i2], &population[i3]);
+            if (i2 >= i1) i2++;
+
+            if (i3 >= i1) i3++;
+            if (i3 >= i2) i3++;
+
+            run_headless_game((int32_t)lcg_next_int(&rng), &population[i1], &population[i2], &population[i3]);
         }
 
         // Sort by fitness
         qsort(population, POPULATION_SIZE, sizeof(Individual), compare_individuals);
 
-        // printf("Gen %d: Best Fitness = %.2f, Weights: ", gen, population[0].fitness);
-        // population[0].eval->save(population[0].eval, "/dev/stdout");
+        if (gen % 50 == 0 && gen != 0) {
+            printf("Gen %d: Best Fitness = %.2f, Weights:\n", gen, population[0].fitness);
+            population[0].eval->save(population[0].eval, "/dev/stdout");
+        }
 
         // Evolution
         for (int i = ELITISM_COUNT; i < POPULATION_SIZE; i++) {
             // Pick a parent from the elite
-            int parent_idx = rand() % ELITISM_COUNT;
+            int parent_idx = (int)lcg_next_int_n(&rng, ELITISM_COUNT);
 
             // Mutate loser towards parent
             EAMutationParams params;

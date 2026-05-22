@@ -11,10 +11,10 @@
 #include <string.h>
 
 #define POPULATION_SIZE 50
-#define GENERATIONS 10
+#define GENERATIONS 20
 #define PRINT_EVERY_X_GEN 1
-#define GAMES_PER_AGENT 500
-#define ELITISM_COUNT 10
+#define GAMES_PER_AGENT 1000
+#define ELITISM_COUNT 8
 
 // Mutation Parameter Ranges (will be lerped over generations)
 #define MUTATION_RATE_START 0.5

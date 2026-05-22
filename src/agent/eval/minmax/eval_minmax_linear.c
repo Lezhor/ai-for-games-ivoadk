@@ -15,35 +15,14 @@ static double get_random_double(void) {
 }
 #endif
 
-static void evaluate_linear(Evaluator* self, const GameSettings* settings, const GameState* state, uint8_t perspective_player, double* out_scores) {
+static void evaluate_linear(Evaluator* self, const GameSettings* settings, const GameState* state, double* out_scores) {
     (void)settings;
     LinearEvalState* st = (LinearEvalState*)self->state;
 
-    // Check if game finished and return absolute win/loss scores
-    if (game_finished_condition((GameState*)state)) {
-        uint8_t win_score_val;
-        uint8_t winner = game_get_winner((GameState*)state, &win_score_val);
-        if (winner == perspective_player) {
-            out_scores[0] = WIN_SCORE + state->p1_score; // Simple bonus for actual score
-            return;
-        }
-        if (winner != 0) {
-            out_scores[0] = LOSS_SCORE;
-            return;
-        }
-    }
-
-    // Fast mapping based on turn order (1, 2, or 3)
-    // 1 -> 2 -> 3 -> 1
-    int my_id   = perspective_player;
-    int next_id = (perspective_player % 3) + 1;
-    int prev_id = ((perspective_player + 1) % 3) + 1;
-
-    double raw_scores[4] = {0.0, (double)state->p1_score, (double)state->p2_score, (double)state->p3_score};
-
-    out_scores[0] = (st->weights[0] * raw_scores[my_id]) +
-                    (st->weights[1] * raw_scores[next_id]) +
-                    (st->weights[2] * raw_scores[prev_id]);
+    // Always from Player 1's perspective
+    out_scores[0] = (st->weights[0] * (double)state->p1_score) +
+                    (st->weights[1] * (double)state->p2_score) +
+                    (st->weights[2] * (double)state->p3_score);
 }
 
 #ifdef AGENT_TRAINING

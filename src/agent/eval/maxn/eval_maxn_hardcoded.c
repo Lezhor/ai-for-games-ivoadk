@@ -1,10 +1,9 @@
 #include "eval_maxn_hardcoded.h"
 #include <stdlib.h>
 
-static void evaluate_maxn_hardcoded(Evaluator* self, const GameSettings* settings, const GameState* state, uint8_t perspective_player, double* out_scores) {
+static void evaluate_maxn_hardcoded(Evaluator* self, const GameSettings* settings, const GameState* state, double* out_scores) {
     (void)self;
     (void)settings;
-    (void)perspective_player;
 
     // MaxN needs absolute scores for all 3 players
     out_scores[0] = (double)state->p1_score;

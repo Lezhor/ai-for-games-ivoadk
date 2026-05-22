@@ -24,7 +24,7 @@ static MaxNScore maxn_recursive(const GameSettings* settings, GameState* state, 
     int finished = game_finished_condition(state);
     if (depth <= 0 || finished) {
         double raw_scores[3];
-        eval->evaluate(eval, settings, state, 0, raw_scores);
+        eval->evaluate(eval, settings, state, raw_scores);
         MaxNScore res;
         res.s[0] = (int16_t)finished;
         res.s[1] = (int16_t)raw_scores[0];

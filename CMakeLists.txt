@@ -206,6 +206,7 @@ add_agent_executable(randomizer)
 add_agent_executable(minmax_hardcoded)
 add_agent_executable(minmax_linear)
 add_agent_executable(minmax_linear_complex)
+add_agent_executable(top_picker)
 add_agent_executable(maxn)
 
 add_train_executable(minmax_linear)

@@ -2,6 +2,7 @@
 #include "game/game.h"
 #include "game/game_internal.h"
 #include "agent/logic/random_logic.h"
+#include "agent/logic/top_logic.h"
 #include "agent/logic/minmax_logic.h"
 #include "agent/logic/maxn_logic.h"
 #include "agent/eval/minmax/eval_minmax_hardcoded.h"
@@ -33,6 +34,8 @@ Agent* create_agent(const char* type, Evaluator** out_eval) {
     *out_eval = NULL;
     if (strcmp(type, "random") == 0) {
         return agent_create_random((uint64_t)rand());
+    } else if (strcmp(type, "top_picker") == 0) {
+        return agent_create_top_picker();
     } else if (strcmp(type, "minmax_hardcoded") == 0) {
         *out_eval = evaluator_create_minmax_hardcoded();
         return agent_create_minmax(*out_eval, 4, false);

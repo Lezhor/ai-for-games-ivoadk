@@ -1,4 +1,5 @@
 #include "train_core.h"
+#include "utils/time_utils.h"
 #ifdef AGENT_TRAINING
 #include "game/game.h"
 #include "agent/eval/minmax/eval_minmax_linear.h"
@@ -44,9 +45,8 @@ static void run_headless_game(int32_t seed, Individual* p1, Individual* p2, Indi
         uint8_t current_player = game.player_turn;
         Individual* current_ind = players[current_player];
 
-        // 100ms deadline for training games (arbitrary)
-        // TODO: no deadline but instead small enough depth
-        uint64_t deadline = 100;
+        // 10s deadline for training games (plenty for depth 4)
+        uint64_t deadline = time_get_now_ms() + 10000;
         uint8_t move_idx = current_ind->agent->get_move(current_ind->agent, &settings, &game, current_player, deadline);
 
         game_take_move(&settings, &game, current_player, move_idx);
@@ -86,15 +86,15 @@ int run_ea_training_loop(int argc, char* argv[], AgentFactory factory, const cha
             int i2 = rand() % POPULATION_SIZE;
             int i3 = rand() % POPULATION_SIZE;
             if (i1 == i2 || i2 == i3 || i1 == i3) continue;
-            // TODO: use some kind of seed?
-            run_headless_game(0, &population[i1], &population[i2], &population[i3]);
+
+            run_headless_game((int32_t)rand(), &population[i1], &population[i2], &population[i3]);
         }
 
         // Sort by fitness
         qsort(population, POPULATION_SIZE, sizeof(Individual), compare_individuals);
 
-        printf("Gen %d: Best Fitness = %.2f, Weights: ", gen, population[0].fitness);
-        population[0].eval->save(population[0].eval, "/dev/stdout");
+        // printf("Gen %d: Best Fitness = %.2f, Weights: ", gen, population[0].fitness);
+        // population[0].eval->save(population[0].eval, "/dev/stdout");
 
         // Evolution
         for (int i = ELITISM_COUNT; i < POPULATION_SIZE; i++) {

@@ -219,3 +219,37 @@ int game_get_move_count(GameState* game) {
     return (game->p1_score + game->p2_score + game->p3_score) * 2
         + __builtin_popcountll(((game->v | (game->v >> 1)) & GAME_MASK_BOARD_EVEN));
 }
+
+void game_cycle_perspective(GameState* game, uint8_t from, uint8_t to) {
+    int diff = (to - from + 3) % 3;
+    if (diff == 0) return;
+
+    assert(from >= 1 && from <= 3 && to >= 1 && to <= 3);
+
+    uint64_t v = game->v;
+    uint64_t f_mask = -(uint64_t)(diff >> 1); // 0 if diff=1 (fwd), ~0 if diff=2 (back)
+
+    // 1. Board SWAR: Cycle all 19 cells (2 bits each)
+    uint64_t b_h = v & GAME_MASK_BOARD_ODD;
+    uint64_t b_l = v & GAME_MASK_BOARD_EVEN;
+    uint64_t new_board = (((b_h & ~f_mask) ^ (b_l << 1)) & GAME_MASK_BOARD_ODD) |
+                         (((b_h >> 1) ^ (f_mask & b_l)) & GAME_MASK_BOARD_EVEN);
+
+    // 2. Active Players: Rotate 3 bits (pos 38, 39, 40)
+    uint64_t active = (v & GAME_MASK_ACTIVE_PLAYERS) >> 38;
+    uint64_t new_active = ((active << diff) | (active >> (3 - diff))) & 0x7;
+
+    // 3. Player Turn: Cycle 1->2->3 or 1->3->2
+    uint64_t turn = (v & GAME_MASK_PLAYER_TURN) >> 41;
+    assert(turn != 0);
+    uint64_t x = turn + (uint64_t)diff - 1;
+    turn = (x >= 3 ? x - 3 : x) + 1;
+
+    // 4. Scores: Rotate three 7-bit slots (total 21 bits)
+    uint64_t s_shift = (uint64_t)diff * 7;
+    uint64_t scores = (v & GAME_MASK_SCORES) >> 43;
+    uint64_t new_scores = ((scores << s_shift) | (scores >> (21 - s_shift))) & 0x1FFFFF;
+
+    // Reassemble 64-bit state
+    game->v = new_board | (new_active << 38) | (turn << 41) | (new_scores << 43);
+}

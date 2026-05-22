@@ -60,7 +60,7 @@ static void run_headless_game(int32_t seed, Individual* p1, Individual* p2, Indi
     p3->fitness += t_scores[3];
 }
 
-int run_ea_training_loop(int argc, char* argv[], AgentFactory factory) {
+int run_ea_training_loop(int argc, char* argv[], AgentFactory factory, const char* model_path) {
     (void)argc; (void)argv;
     srand((unsigned int)time(NULL));
 
@@ -105,14 +105,14 @@ int run_ea_training_loop(int argc, char* argv[], AgentFactory factory) {
             EAMutationParams params;
             params.mutation_rate = MUTATION_RATE;
             params.mutation_scale = MUTATION_SCALE;
-            params.template_state = (const LinearEvalState*)population[parent_idx].eval->state;
+            params.template_state = population[parent_idx].eval->state;
 
             population[i].eval->train(population[i].eval, &params);
         }
 
         // Save best periodically
         if (gen % 10 == 0 || gen == GENERATIONS - 1) {
-            population[0].eval->save(population[0].eval, "models/minmax/best_linear.txt");
+            population[0].eval->save(population[0].eval, model_path);
         }
     }
 

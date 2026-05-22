@@ -14,14 +14,7 @@ typedef struct {
 } LinearEvalState;
 
 #ifdef AGENT_TRAINING
-/**
- * Parameters for evolutionary training of the linear evaluator.
- */
-typedef struct {
-    double mutation_rate;
-    double mutation_scale;
-    const LinearEvalState* template_state; // If non-NULL, copy this state before mutating
-} EAMutationParams;
+#include "train/train_core.h"
 #endif
 
 /**

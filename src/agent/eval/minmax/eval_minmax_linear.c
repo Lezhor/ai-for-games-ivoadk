@@ -31,7 +31,7 @@ static int linear_train(Evaluator* self, void* training_data) {
     EAMutationParams* params = (EAMutationParams*)training_data;
 
     if (params->template_state) {
-        memcpy(st->weights, params->template_state->weights, sizeof(st->weights));
+        memcpy(st->weights, ((const LinearEvalState*)params->template_state)->weights, sizeof(st->weights));
     }
 
     for (int i = 0; i < 3; i++) {

@@ -1,4 +1,5 @@
 #include "minmax_logic.h"
+#include "game/game.h"
 #include "utils/time_utils.h"
 #include <stdlib.h>
 #include <limits.h>
@@ -10,18 +11,11 @@ typedef struct {
     bool use_iterative_deepening;
 } MinMaxState;
 
-static int minmax_recursive(const GameSettings* settings, GameState* state, int depth, int alpha, int beta, uint8_t max_player, uint64_t deadline_ms, bool* aborted, uint64_t* node_count, Evaluator* eval) {
+static int minmax_recursive(const GameSettings* settings, GameState* state, int depth, int alpha, int beta, uint64_t deadline_ms, bool* aborted, uint64_t* node_count, Evaluator* eval) {
     if (depth <= 0 || game_finished_condition(state)) {
         double out_scores[1] = {0.0};
-        eval->evaluate(eval, settings, state, max_player, out_scores);
-        
-        // Prefer shorter paths to win and longer paths to loss
-        if (out_scores[0] >= 50000.0) {
-            return (int)out_scores[0] + depth;
-        }
-        if (out_scores[0] <= -50000.0) {
-            return (int)out_scores[0] - depth;
-        }
+        eval->evaluate(eval, settings, state, out_scores);
+
         return (int)out_scores[0];
     }
 
@@ -34,7 +28,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
     }
 
     uint8_t current_player = (uint8_t)(state->player_turn);
-    int is_max_node = (current_player == max_player);
+    int is_max_node = (current_player == 1);
 
     uint64_t occupied = ((state->v | (state->v >> 1)) & GAME_MASK_BOARD_EVEN);
     uint64_t free_cells = GAME_MASK_BOARD_EVEN & ~occupied;
@@ -49,7 +43,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
 
             GameState next_state = *state;
             game_take_move(settings, &next_state, current_player, move);
-            int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count, eval);
+            int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, deadline_ms, aborted, node_count, eval);
             if (*aborted) return 0;
 
             if (e > max_eval) max_eval = e;
@@ -61,7 +55,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
         if (beta > alpha) {
             GameState next_state = *state;
             game_take_move(settings, &next_state, current_player, ILLEGAL_MOVE);
-            int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count, eval);
+            int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, deadline_ms, aborted, node_count, eval);
             if (*aborted) return 0;
             if (e > max_eval) max_eval = e;
         }
@@ -77,7 +71,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
 
             GameState next_state = *state;
             game_take_move(settings, &next_state, current_player, move);
-            int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count, eval);
+            int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, deadline_ms, aborted, node_count, eval);
             if (*aborted) return 0;
 
             if (e < min_eval) min_eval = e;
@@ -88,7 +82,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
         if (beta > alpha) {
             GameState next_state = *state;
             game_take_move(settings, &next_state, current_player, ILLEGAL_MOVE);
-            int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count, eval);
+            int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, deadline_ms, aborted, node_count, eval);
             if (*aborted) return 0;
             if (e < min_eval) min_eval = e;
         }
@@ -97,7 +91,7 @@ static int minmax_recursive(const GameSettings* settings, GameState* state, int 
     }
 }
 
-static uint8_t do_search(const GameSettings* settings, const GameState* state, int depth, uint8_t max_player, uint64_t deadline_ms, bool* aborted, uint64_t* node_count, Evaluator* eval) {
+static uint8_t do_search(const GameSettings* settings, const GameState* state, int depth, uint64_t deadline_ms, bool* aborted, uint64_t* node_count, Evaluator* eval) {
     uint8_t best_move = ILLEGAL_MOVE;
     int max_eval = INT_MIN;
     int alpha = INT_MIN;
@@ -116,7 +110,7 @@ static uint8_t do_search(const GameSettings* settings, const GameState* state, i
 
         GameState next_state = *state;
         game_take_move(settings, &next_state, current_player, move);
-        int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count, eval);
+        int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, deadline_ms, aborted, node_count, eval);
         if (*aborted) return ILLEGAL_MOVE;
 
         if (e > max_eval) {
@@ -129,7 +123,7 @@ static uint8_t do_search(const GameSettings* settings, const GameState* state, i
     // Always try illegal move
     GameState next_state = *state;
     game_take_move(settings, &next_state, current_player, ILLEGAL_MOVE);
-    int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, max_player, deadline_ms, aborted, node_count, eval);
+    int e = minmax_recursive(settings, &next_state, depth - 1, alpha, beta, deadline_ms, aborted, node_count, eval);
     if (*aborted) return ILLEGAL_MOVE;
 
     if (e > max_eval) {
@@ -142,26 +136,29 @@ static uint8_t do_search(const GameSettings* settings, const GameState* state, i
 
 static uint8_t minmax_get_move(Agent* self, const GameSettings* settings, const GameState* game, uint8_t player_id, uint64_t deadline_ms) {
     MinMaxState* internal = (MinMaxState*)self->internal_state;
-    
+
     uint8_t best_move_overall = ILLEGAL_MOVE;
     uint64_t node_count = 0;
     int depth_reached = 0;
 
+    GameState cycled_game = *game;
+    game_cycle_perspective(&cycled_game, player_id, 1);
+
     if (internal->use_iterative_deepening) {
         for (int depth = 1; depth <= internal->max_depth; depth++) {
             bool aborted = false;
-            uint8_t move = do_search(settings, game, depth, player_id, deadline_ms, &aborted, &node_count, internal->eval);
+            uint8_t move = do_search(settings, &cycled_game, depth, deadline_ms, &aborted, &node_count, internal->eval);
             if (aborted) break;
             best_move_overall = move;
             depth_reached = depth;
         }
     } else {
         bool aborted = false;
-        best_move_overall = do_search(settings, game, internal->max_depth, player_id, deadline_ms, &aborted, &node_count, internal->eval);
+        best_move_overall = do_search(settings, &cycled_game, internal->max_depth, deadline_ms, &aborted, &node_count, internal->eval);
         depth_reached = internal->max_depth;
     }
 
-#ifdef NDEBUG
+#ifndef NDEBUG
     printf("Depth reached: %d, nodes: %llu\n", depth_reached, node_count);
 #endif
     (void)depth_reached;

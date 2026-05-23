@@ -126,6 +126,11 @@ file(GLOB_RECURSE CORE_SUB_FILES
 set(CORE_FILES ${CORE_ROOT_FILES} ${CORE_SUB_FILES})
 
 # --------------------------------------------------------
+# Training Files
+# --------------------------------------------------------
+file(GLOB TRAIN_FILES "${CMAKE_SOURCE_DIR}/src/train/*.c")
+
+# --------------------------------------------------------
 # Agent Executables
 # --------------------------------------------------------
 function(add_agent_executable AGENT_NAME)
@@ -179,12 +184,41 @@ function(add_agent_executable AGENT_NAME)
     message(STATUS "Agent executable created: ${TARGET_NAME}")
 endfunction()
 
+# --------------------------------------------------------
+# Training Executables
+# --------------------------------------------------------
+function(add_train_executable AGENT_NAME)
+    set(TARGET_NAME "train-${AGENT_NAME}")
+    set(AGENT_FILE "${CMAKE_SOURCE_DIR}/src/agent/${AGENT_NAME}.c")
+
+    add_executable(${TARGET_NAME} ${CORE_FILES} ${AGENT_FILE} ${TRAIN_FILES})
+    target_link_libraries(${TARGET_NAME} PRIVATE core)
+
+    # Inject the AGENT_TRAINING flag!
+    target_compile_definitions(${TARGET_NAME} PRIVATE AGENT_TRAINING)
+
+    message(STATUS "Train executable created: ${TARGET_NAME}")
+endfunction()
+
 # Register your Agents here!
 add_agent_executable(idler)
 add_agent_executable(randomizer)
-add_agent_executable(minmax)
+add_agent_executable(minmax_hardcoded)
+add_agent_executable(minmax_linear)
+add_agent_executable(minmax_linear_complex)
+add_agent_executable(top_picker)
 add_agent_executable(maxn)
+
+add_train_executable(minmax_linear)
+add_train_executable(minmax_linear_complex)
+
 # TODO: add_agent_executable(human)
+
+# --------------------------------------------------------
+# Match Runner
+# --------------------------------------------------------
+add_executable(match src/agent/match.c ${CORE_FILES})
+target_link_libraries(match PRIVATE core)
 
 
 # --------------------------------------------------------

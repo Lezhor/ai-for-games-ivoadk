@@ -1,6 +1,11 @@
 #include <assert.h>
 #include <stdint.h>
+#include <math.h>
 #include "lcg.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 // this is the exact implementation of the needed subportion of java.utils.Random.
 // for many functions i translated the code line by line.
@@ -44,4 +49,21 @@ int32_t lcg_next_int_n(lcg_t* rng, int32_t bound) {
 int64_t lcg_next_long(lcg_t* rng) {
     // it's okay that the bottom word remains signed. (java.utils.Random)
     return ((int64_t)lcg_next(rng, 32) << 32) + lcg_next(rng, 32);
+}
+
+double lcg_next_double(lcg_t* rng) {
+    return (double)lcg_next(rng, 31) / 2147483648.0;
+}
+
+double lcg_next_double_range(lcg_t* rng, double min, double max) {
+    return min + lcg_next_double(rng) * (max - min);
+}
+
+double lcg_next_gaussian(lcg_t* rng) {
+    double u1, u2;
+    do {
+        u1 = lcg_next_double(rng);
+    } while (u1 <= 0.0);
+    u2 = lcg_next_double(rng);
+    return sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
 }

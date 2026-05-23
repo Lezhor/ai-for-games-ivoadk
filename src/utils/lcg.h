@@ -36,4 +36,19 @@ int32_t lcg_next_int_n(lcg_t* rng, int32_t bound);
  */
 int64_t lcg_next_long(lcg_t* rng);
 
+/**
+ * Generates a random double in the range [0.0, 1.0).
+ */
+double lcg_next_double(lcg_t* rng);
+
+/**
+ * Generates a random double in the range [min, max).
+ */
+double lcg_next_double_range(lcg_t* rng, double min, double max);
+
+/**
+ * Generates a random double following a normal distribution (mean 0.0, stddev 1.0).
+ */
+double lcg_next_gaussian(lcg_t* rng);
+
 #endif // LCG_H

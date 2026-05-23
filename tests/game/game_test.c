@@ -175,12 +175,80 @@ static char* test_game_turn_set(void) {
     return 0;
 }
 
+static char* test_game_cycle_perspective(void) {
+    GameState state;
+    // P1: score 10, active=1, stones at 0, 1
+    // P2: score 20, active=1, stones at 2, 3
+    // P3: score 30, active=0, stones at 4, 5
+    // turn: P1
+    state.v = 0;
+    state.board = CELL_VAL(0, 1) | CELL_VAL(1, 1) | CELL_VAL(2, 2) | CELL_VAL(3, 2) | CELL_VAL(4, 3) | CELL_VAL(5, 3);
+    state.p1_active = 1;
+    state.p2_active = 1;
+    state.p3_active = 0;
+    state.player_turn = 1;
+    state.p1_score = 10;
+    state.p2_score = 20;
+    state.p3_score = 30;
+
+    // Cycle 1 -> 2 (Forward)
+    // New P2 = Old P1: score 10, active=1, stones at 0, 1
+    // New P3 = Old P2: score 20, active=1, stones at 2, 3
+    // New P1 = Old P3: score 30, active=0, stones at 4, 5
+    // New Turn: P2
+    GameState fwd = state;
+    game_cycle_perspective(&fwd, 1, 2);
+
+    mu_assert("fwd cycle p1_score", fwd.p1_score == 30);
+    mu_assert("fwd cycle p2_score", fwd.p2_score == 10);
+    mu_assert("fwd cycle p3_score", fwd.p3_score == 20);
+    mu_assert("fwd cycle p1_active", fwd.p1_active == 0);
+    mu_assert("fwd cycle p2_active", fwd.p2_active == 1);
+    mu_assert("fwd cycle p3_active", fwd.p3_active == 1);
+    mu_assert("fwd cycle turn", fwd.player_turn == 2);
+    
+    // Check board: Cell 0, 1 should be 2, Cell 2, 3 should be 3, Cell 4, 5 should be 1
+    mu_assert("fwd cycle board cell 0", ((fwd.board >> (0*2)) & 3) == 2);
+    mu_assert("fwd cycle board cell 1", ((fwd.board >> (1*2)) & 3) == 2);
+    mu_assert("fwd cycle board cell 2", ((fwd.board >> (2*2)) & 3) == 3);
+    mu_assert("fwd cycle board cell 3", ((fwd.board >> (3*2)) & 3) == 3);
+    mu_assert("fwd cycle board cell 4", ((fwd.board >> (4*2)) & 3) == 1);
+    mu_assert("fwd cycle board cell 5", ((fwd.board >> (5*2)) & 3) == 1);
+
+    // Cycle 1 -> 3 (Backward)
+    // New P3 = Old P1: score 10, active=1, stones at 0, 1
+    // New P1 = Old P2: score 20, active=1, stones at 2, 3
+    // New P2 = Old P3: score 30, active=0, stones at 4, 5
+    // New Turn: P3
+    GameState back = state;
+    game_cycle_perspective(&back, 1, 3);
+
+    mu_assert("back cycle p1_score", back.p1_score == 20);
+    mu_assert("back cycle p2_score", back.p2_score == 30);
+    mu_assert("back cycle p3_score", back.p3_score == 10);
+    mu_assert("back cycle p1_active", back.p1_active == 1);
+    mu_assert("back cycle p2_active", back.p2_active == 0);
+    mu_assert("back cycle p3_active", back.p3_active == 1);
+    mu_assert("back cycle turn", back.player_turn == 3);
+
+    // Check board: Cell 0, 1 should be 3, Cell 2, 3 should be 1, Cell 4, 5 should be 2
+    mu_assert("back cycle board cell 0", ((back.board >> (0*2)) & 3) == 3);
+    mu_assert("back cycle board cell 1", ((back.board >> (1*2)) & 3) == 3);
+    mu_assert("back cycle board cell 2", ((back.board >> (2*2)) & 3) == 1);
+    mu_assert("back cycle board cell 3", ((back.board >> (3*2)) & 3) == 1);
+    mu_assert("back cycle board cell 4", ((back.board >> (4*2)) & 3) == 2);
+    mu_assert("back cycle board cell 5", ((back.board >> (5*2)) & 3) == 2);
+
+    return 0;
+}
+
 static char* test_all(void) {
     printf("Running game tests...\n");
     mu_run_test(test_apply_triangles);
     mu_run_test(test_jump_back);
     mu_run_test(test_game_turn_advance);
     mu_run_test(test_game_turn_set);
+    mu_run_test(test_game_cycle_perspective);
     return 0;
 }
 

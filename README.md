@@ -37,7 +37,7 @@ The core game engine is built for maximum speed, utilizing bitwise operations to
 The client communicates with the official Java server via a custom protocol. To minimize network payload, the server broadcasts only an initial random seed rather than the full board state. To ensure the C client generates the exact same initial board heights as the Java server, a custom Linear Congruential Generator (LCG) strictly mirroring the exact behavior of `java.util.Random` was implemented from scratch.
 
 ### Build System & Automation
-The project uses a modular CMake build system supporting optional GUI (Raylib) and TUI (ncurses) interfaces. Development is heavily streamlined through automation scripts located in the `scripts/` directory (e.g., `build.sh`, `test.sh`, `match.sh`), alongside dedicated scripts for generating and converting base64 icon assets.
+The project uses a modular CMake build system supporting optional GUI (Raylib) and TUI (ncurses) interfaces. Development is heavily streamlined through automation scripts located in the `scripts/` directory (e.g., `build.sh`, `test.sh`, `match.sh`), alongside dedicated scripts for generating and converting base64 icon assets. Raylib is imported however not yet implemented so its just a waste of space for now :')
 
 ### Modular Agent Entrypoints
 Adding new agents is trivial. The CMake configuration (`add_agent_executable`) links the core simulation engine to a single standalone file in `src/agent/`. This structure isolates agent logic while providing immediate access to the high-performance engine, making experimentation and testing effortless.

@@ -192,6 +192,8 @@ static uint8_t mcts_get_move(const TrainAlphaZeroConfig* config, MCTSContext* ct
     return move;
 }
 
+#include "utils/time_utils.h"
+
 void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
     printf("Starting AlphaZero training loop...\n");
     printf("Model path: %s\n", config->model_path ? config->model_path : "None");
@@ -211,6 +213,8 @@ void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
 
     DataCollector dc;
     data_collector_create(&dc);
+
+    uint64_t start_ms = time_get_now_ms();
 
     int games_played = 0;
     while (config->num_games == -1 || games_played < config->num_games) {
@@ -241,6 +245,14 @@ void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
         }
         if (games_played % 1000 == 0) printf(" [%d games]\n", games_played);
     }
+
+    uint64_t end_ms = time_get_now_ms();
+    uint64_t total_ms = end_ms - start_ms;
+    double total_sec = (double)total_ms / 1000.0;
+    double avg_ms = (games_played > 0) ? (double)total_ms / (double)games_played : 0;
+
+    printf("\n\nTraining finished!\n");
+    printf("Played %d games in %.2f seconds (approx. %d games/second)\n", games_played, total_sec, (int)(1000.0 / (double)avg_ms));
 
     data_collector_free(&dc);
     eval->free(eval);

@@ -1,0 +1,225 @@
+#include "train_alpha_zero.h"
+#include "agent/eval/alpha_zero/evaluator_alpha_zero.h"
+#include "data_collector.h"
+#include "game/game.h"
+#include "utils/lcg.h"
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#define MCTS_NODE_POOL_SIZE 10000
+#define MCTS_ITERATIONS 800
+#define EXPLORATION_CONSTANT 1.414
+
+typedef struct {
+    uint32_t visits;
+    double value_sum[3];
+    double prior_prob;
+    int32_t parent_idx;
+    int32_t first_child_idx;
+    int32_t sibling_idx;
+    uint8_t move_id;
+} MCTSNode;
+
+typedef struct {
+    MCTSNode pool[MCTS_NODE_POOL_SIZE];
+    uint32_t pool_cursor;
+    lcg_t rng;
+} MCTSContext;
+
+static int32_t mcts_new_node(MCTSContext* ctx, int32_t parent_idx, uint8_t move_id, double prior) {
+    if (ctx->pool_cursor >= MCTS_NODE_POOL_SIZE) return -1;
+    int32_t idx = (int32_t)ctx->pool_cursor++;
+    MCTSNode* n = &ctx->pool[idx];
+    n->visits = 0;
+    for (int i = 0; i < 3; i++) n->value_sum[i] = 0.0;
+    n->prior_prob = prior;
+    n->parent_idx = parent_idx;
+    n->first_child_idx = -1;
+    n->sibling_idx = -1;
+    n->move_id = move_id;
+    return idx;
+}
+
+static void mcts_expand(MCTSContext* ctx, int32_t node_idx, const GameSettings* settings, const GameState* game, AlphaZeroEvaluator* eval) {
+    MCTSNode* n = &ctx->pool[node_idx];
+    uint8_t current_turn = (uint8_t)game->player_turn;
+
+    // 1. Evaluate leaf (rotated)
+    GameState rotated = *game;
+    game_cycle_perspective(&rotated, current_turn, 1);
+    AlphaZeroEvaluation az_eval;
+    eval->evaluate(eval, settings, &rotated, &az_eval);
+
+    // 2. Expand children
+    int32_t prev_child = -1;
+    for (uint8_t m = 0; m < 20; m++) {
+        if (m != ILLEGAL_MOVE && !game_is_move_valid(game, m)) continue;
+
+        int32_t child_idx = mcts_new_node(ctx, node_idx, m, az_eval.policy[m]);
+        if (child_idx == -1) break;
+        if (prev_child == -1) n->first_child_idx = child_idx;
+        else ctx->pool[prev_child].sibling_idx = child_idx;
+        prev_child = child_idx;
+    }
+}
+
+static int32_t mcts_select_child(MCTSContext* ctx, int32_t node_idx, uint8_t player) {
+    MCTSNode* n = &ctx->pool[node_idx];
+    int32_t best_child = -1;
+    double best_uct = -1e20;
+
+    int32_t curr = n->first_child_idx;
+    while (curr != -1) {
+        MCTSNode* c = &ctx->pool[curr];
+        double uct;
+        if (c->visits == 0) {
+            uct = EXPLORATION_CONSTANT * c->prior_prob * sqrt(n->visits + 1);
+        } else {
+            double q = c->value_sum[player - 1] / c->visits;
+            double u = EXPLORATION_CONSTANT * c->prior_prob * sqrt(n->visits) / (1 + c->visits);
+            uct = q + u;
+        }
+
+        if (uct > best_uct) {
+            best_uct = uct;
+            best_child = curr;
+        }
+        curr = c->sibling_idx;
+    }
+    return best_child;
+}
+
+// TODO: reuse path_buffer
+static void mcts_iteration(MCTSContext* ctx, const GameSettings* settings, const GameState* game, AlphaZeroEvaluator* eval) {
+    int32_t path[128];
+    int path_len = 0;
+    int32_t curr_idx = 0;
+    GameState temp_game = *game;
+
+    // 1. Selection
+    while (ctx->pool[curr_idx].first_child_idx != -1) {
+        path[path_len++] = curr_idx;
+        uint8_t turn = (uint8_t)temp_game.player_turn;
+        curr_idx = mcts_select_child(ctx, curr_idx, turn);
+        game_take_move(settings, &temp_game, turn, ctx->pool[curr_idx].move_id);
+    }
+    path[path_len++] = curr_idx;
+
+    // 2. Expansion & Initial Value
+    uint8_t turn = (uint8_t)temp_game.player_turn;
+    GameState rotated = temp_game;
+    game_cycle_perspective(&rotated, turn, 1);
+    AlphaZeroEvaluation az_eval;
+    eval->evaluate(eval, settings, &rotated, &az_eval);
+
+    // Un-rotate value back to absolute perspective
+    double abs_v[3];
+    int diff = (1 - (int)turn + 3) % 3;
+    for (int p = 0; p < 3; p++) abs_v[(p + diff) % 3] = az_eval.value[p];
+
+    if (!game_finished_condition(&temp_game)) {
+        mcts_expand(ctx, curr_idx, settings, &temp_game, eval);
+    } else {
+        // Anchoring to truth at terminal nodes
+        uint8_t scores[4];
+        get_tournament_scores(&temp_game, scores);
+        for (int i = 0; i < 3; i++) abs_v[i] = (double)scores[i+1] / 2.0;
+    }
+
+    // 3. Backpropagation
+    for (int i = 0; i < path_len; i++) {
+        MCTSNode* n = &ctx->pool[path[i]];
+        n->visits++;
+        for (int p = 0; p < 3; p++) n->value_sum[p] += abs_v[p];
+    }
+}
+
+static uint8_t mcts_get_move(MCTSContext* ctx, const GameSettings* settings, const GameState* game, AlphaZeroEvaluator* eval, double* out_policy) {
+    ctx->pool_cursor = 0;
+    mcts_new_node(ctx, -1, 0xFF, 1.0); // Root
+    mcts_expand(ctx, 0, settings, game, eval);
+
+    for (int i = 0; i < MCTS_ITERATIONS; i++) {
+        mcts_iteration(ctx, settings, game, eval);
+    }
+
+    // Extract Policy
+    MCTSNode* root = &ctx->pool[0];
+    memset(out_policy, 0, sizeof(double) * 20);
+    uint32_t total_visits = 0;
+    int32_t curr = root->first_child_idx;
+    while (curr != -1) {
+        total_visits += ctx->pool[curr].visits;
+        curr = ctx->pool[curr].sibling_idx;
+    }
+
+    uint8_t best_move = 0;
+    uint32_t max_visits = 0;
+    curr = root->first_child_idx;
+    while (curr != -1) {
+        MCTSNode* c = &ctx->pool[curr];
+        if (total_visits > 0) out_policy[c->move_id] = (double)c->visits / total_visits;
+        if (c->visits > max_visits) {
+            max_visits = c->visits;
+            best_move = c->move_id;
+        }
+        curr = c->sibling_idx;
+    }
+
+    return best_move;
+}
+
+void run_alpha_zero_training_loop(const AgentConfig* config) {
+    // TODO: move debug to entry file?
+    printf("Starting AlphaZero training loop...\n");
+    printf("Model path: %s\n", config->model_path ? config->model_path : "None");
+    printf("Output path: %s\n", config->training_data_output);
+
+    AlphaZeroEvaluator* eval = config->use_nn ?
+        evaluator_create_alpha_zero_nn(config->model_path) :
+        evaluator_create_alpha_zero_hardcoded();
+
+    MCTSContext ctx;
+    // TODO: random seed
+    lcg_set_seed(&ctx.rng, 43); // Deterministic for now
+
+    DataCollector dc;
+    data_collector_create(&dc);
+
+    // TODO: dont repeat infinitly
+    while (1) {
+        GameSettings settings;
+        game_init_settings((int32_t)lcg_next_int(&ctx.rng), &settings);
+        GameState game;
+        game.v = GAME_STATE_DEFAULT_VALUE;
+
+        data_collector_init_game(&dc, &settings);
+
+        printf("started new game\n");
+
+        while (!game_finished_condition(&game)) {
+            double policy[20];
+            printf("calculating move for player %d\n", game.player_turn);
+            uint8_t move = mcts_get_move(&ctx, &settings, &game, eval, policy);
+            printf("move calculated: %d (next player: %d)\n", move, game.player_turn);
+            data_collector_record_turn(&dc, &game, policy);
+            uint8_t turn = (uint8_t)game.player_turn;
+            game_take_move(&settings, &game, turn, move);
+            char game_str[128];
+            game_to_string(&game, game_str);
+            printf("game:  %s\n", game_str);
+        }
+
+        printf("one game finished\n");
+
+        uint8_t scores[4];
+        get_tournament_scores(&game, scores);
+        double final_v[3] = { (double)scores[1]/2.0, (double)scores[2]/2.0, (double)scores[3]/2.0 };
+        data_collector_flush_game(&dc, final_v, config->training_data_output);
+    }
+
+    data_collector_free(&dc);
+    eval->free(eval);
+}

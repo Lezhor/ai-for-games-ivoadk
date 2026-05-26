@@ -94,6 +94,11 @@ void game_take_move(const GameSettings* game_settings, GameState* game, uint8_t 
     game_turn_advance(game);
 }
 
+int game_is_move_valid(const GameState* game, uint8_t move) {
+    if (move >= BOARD_SIZE) return 0;
+    return (game->v & ((uint64_t)3 << (move * 2))) == 0;
+}
+
 /**
  * sets who's turn its rn.
  * this is NOT for incrementing a turn! whenever current turn isnt passed player it inactivates all players in between
@@ -157,8 +162,8 @@ void game_turn_advance(GameState* game) {
 // GAME FINISH
 
 int game_finished_condition(GameState* game) {
-    // check if 1 or less players remaining
-    if (__builtin_popcountll(game->v & GAME_MASK_ACTIVE_PLAYERS) <= 1) {
+    // check if no players remaining
+    if ((game->v & GAME_MASK_ACTIVE_PLAYERS) == 0) {
         return 1;
     }
     // check if board is full

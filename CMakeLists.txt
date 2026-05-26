@@ -122,13 +122,14 @@ file(GLOB_RECURSE CORE_SUB_FILES
     "${CMAKE_SOURCE_DIR}/src/agent/logic/*.c"
     "${CMAKE_SOURCE_DIR}/src/agent/eval/minmax/*.c"
     "${CMAKE_SOURCE_DIR}/src/agent/eval/maxn/*.c"
+    "${CMAKE_SOURCE_DIR}/src/agent/eval/alpha_zero/*.c"
 )
 set(CORE_FILES ${CORE_ROOT_FILES} ${CORE_SUB_FILES})
 
 # --------------------------------------------------------
 # Training Files
 # --------------------------------------------------------
-file(GLOB TRAIN_FILES "${CMAKE_SOURCE_DIR}/src/train/*.c")
+file(GLOB_RECURSE TRAIN_FILES "${CMAKE_SOURCE_DIR}/src/train/*.c")
 
 # --------------------------------------------------------
 # Agent Executables
@@ -208,9 +209,11 @@ add_agent_executable(minmax_linear)
 add_agent_executable(minmax_linear_complex)
 add_agent_executable(top_picker)
 add_agent_executable(maxn)
+add_agent_executable(alpha_zero)
 
 add_train_executable(minmax_linear)
 add_train_executable(minmax_linear_complex)
+add_train_executable(alpha_zero)
 
 # TODO: add_agent_executable(human)
 

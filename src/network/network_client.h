@@ -7,6 +7,12 @@ typedef struct AgentConfig {
     int port;
     const char* agent_name;
     const char* icon_path;
+
+    // TODO: move it to cli.c
+    // AlphaZero specific
+    int use_nn;
+    const char* model_path;
+    const char* training_data_output;
 } AgentConfig;
 
 typedef struct NetworkClient {

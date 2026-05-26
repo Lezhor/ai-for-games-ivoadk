@@ -12,6 +12,7 @@ typedef struct {
     int seed_provided;
     int num_mcts_iterations;
     double temperature;
+    double c_puct;
 } TrainAlphaZeroConfig;
 
 void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config);

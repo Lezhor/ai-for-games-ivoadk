@@ -31,6 +31,7 @@ void parse_alpha_zero_args(int argc, char* argv[], TrainAlphaZeroConfig* config)
     config->num_games = 1000; // -1 for infinite
     config->num_mcts_iterations = 800;
     config->temperature = 1.0;
+    config->c_puct = 1.414;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--use-nn") == 0) {
@@ -48,6 +49,8 @@ void parse_alpha_zero_args(int argc, char* argv[], TrainAlphaZeroConfig* config)
             config->num_mcts_iterations = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--temperature") == 0 && i + 1 < argc) {
             config->temperature = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--c-puct") == 0 && i + 1 < argc) {
+            config->c_puct = atof(argv[++i]);
         }
     }
 }

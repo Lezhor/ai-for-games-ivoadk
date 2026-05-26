@@ -10,7 +10,6 @@
 #include <time.h>
 
 #define MCTS_NODE_POOL_SIZE 10000
-#define EXPLORATION_CONSTANT 1.414
 
 typedef struct {
     uint32_t visits;
@@ -65,7 +64,7 @@ static void mcts_expand(MCTSContext* ctx, int32_t node_idx, const GameSettings* 
     }
 }
 
-static int32_t mcts_select_child(MCTSContext* ctx, int32_t node_idx, uint8_t player) {
+static int32_t mcts_select_child(const TrainAlphaZeroConfig* config, MCTSContext* ctx, int32_t node_idx, uint8_t player) {
     MCTSNode* n = &ctx->pool[node_idx];
     int32_t best_child = -1;
     double best_uct = -1e20;
@@ -75,10 +74,10 @@ static int32_t mcts_select_child(MCTSContext* ctx, int32_t node_idx, uint8_t pla
         MCTSNode* c = &ctx->pool[curr];
         double uct;
         if (c->visits == 0) {
-            uct = EXPLORATION_CONSTANT * c->prior_prob * sqrt(n->visits + 1);
+            uct = config->c_puct * c->prior_prob * sqrt((double)n->visits + 1);
         } else {
             double q = c->value_sum[player - 1] / c->visits;
-            double u = EXPLORATION_CONSTANT * c->prior_prob * sqrt(n->visits) / (1 + c->visits);
+            double u = config->c_puct * c->prior_prob * sqrt((double)n->visits) / (1.0 + c->visits);
             uct = q + u;
         }
 
@@ -92,7 +91,7 @@ static int32_t mcts_select_child(MCTSContext* ctx, int32_t node_idx, uint8_t pla
 }
 
 // TODO: reuse path_buffer
-static void mcts_iteration(MCTSContext* ctx, const GameSettings* settings, const GameState* game, AlphaZeroEvaluator* eval) {
+static void mcts_iteration(const TrainAlphaZeroConfig* config, MCTSContext* ctx, const GameSettings* settings, const GameState* game, AlphaZeroEvaluator* eval) {
     int32_t path[128];
     int path_len = 0;
     int32_t curr_idx = 0;
@@ -102,7 +101,7 @@ static void mcts_iteration(MCTSContext* ctx, const GameSettings* settings, const
     while (ctx->pool[curr_idx].first_child_idx != -1) {
         path[path_len++] = curr_idx;
         uint8_t turn = (uint8_t)temp_game.player_turn;
-        curr_idx = mcts_select_child(ctx, curr_idx, turn);
+        curr_idx = mcts_select_child(config, ctx, curr_idx, turn);
         game_take_move(settings, &temp_game, turn, ctx->pool[curr_idx].move_id);
     }
     path[path_len++] = curr_idx;
@@ -143,7 +142,7 @@ static uint8_t mcts_get_move(const TrainAlphaZeroConfig* config, MCTSContext* ct
     mcts_expand(ctx, 0, settings, game, eval);
 
     for (int i = 0; i < config->num_mcts_iterations; i++) {
-        mcts_iteration(ctx, settings, game, eval);
+        mcts_iteration(config, ctx, settings, game, eval);
     }
 
     // Extract Policy with Temperature
@@ -162,6 +161,7 @@ static uint8_t mcts_get_move(const TrainAlphaZeroConfig* config, MCTSContext* ct
 
     uint8_t move = 19;
     if (config->temperature < 0.01) {
+        // exploit! (max visits)
         uint32_t max_v = 0;
         curr = root->first_child_idx;
         while (curr != -1) {
@@ -171,8 +171,10 @@ static uint8_t mcts_get_move(const TrainAlphaZeroConfig* config, MCTSContext* ct
             }
             curr = ctx->pool[curr].sibling_idx;
         }
+        // Fill policy one-hot for the CSV
         out_policy[move] = 1.0;
     } else {
+        // Stochastic pick based on temperature
         double r = lcg_next_double(&ctx->rng) * total_transformed_visits;
         double acc = 0;
         curr = root->first_child_idx;
@@ -193,7 +195,7 @@ void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
     printf("Starting AlphaZero training loop...\n");
     printf("Model path: %s\n", config->model_path ? config->model_path : "None");
     printf("Output path: %s\n", config->training_data_output);
-    printf("Iterations: %d, Temperature: %.2f\n", config->num_mcts_iterations, config->temperature);
+    printf("Iterations: %d, Temperature: %.2f, C-PUCT: %.3f\n", config->num_mcts_iterations, config->temperature, config->c_puct);
 
     AlphaZeroEvaluator* eval = config->use_nn ?
         evaluator_create_alpha_zero_nn(config->model_path) :
@@ -230,7 +232,7 @@ void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
         get_tournament_scores(&game, scores);
         double final_v[3] = { (double)scores[1]/2.0, (double)scores[2]/2.0, (double)scores[3]/2.0 };
         data_collector_flush_game(&dc, final_v, config->training_data_output);
-        
+
         games_played++;
         printf("."); fflush(stdout);
         if (games_played % 50 == 0) printf(" [%d games]\n", games_played);

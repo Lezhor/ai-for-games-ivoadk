@@ -113,7 +113,7 @@ static void mcts_iteration(MCTSContext* ctx, const GameSettings* settings, const
         uint8_t turn = (uint8_t)temp_game.player_turn;
         GameState rotated = temp_game;
         game_cycle_perspective(&rotated, turn, 1);
-        
+
         AlphaZeroEvaluation az_eval;
         eval->evaluate(eval, settings, &rotated, &az_eval);
 

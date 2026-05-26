@@ -87,6 +87,10 @@ void game_take_move(const GameSettings* game_settings, GameState* game, uint8_t 
     if (move == ILLEGAL_MOVE) {
         // intentionally played illegal move
         game_set_player_inactive(game, player);
+        // break out of the function if no more players present
+        if ((game->v & GAME_MASK_ACTIVE_PLAYERS) == 0) {
+            return;
+        }
     } else {
         game_apply_move(game, player, move);
         game_apply_triangles(game_settings, game);

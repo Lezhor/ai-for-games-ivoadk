@@ -285,6 +285,7 @@ vcpkg_installed/
 # other
 .cache/
 build/
+data/
 
 # Ignore Server Files and libs
 !server/**/*.jar

@@ -108,18 +108,19 @@ static void mcts_iteration(MCTSContext* ctx, const GameSettings* settings, const
     path[path_len++] = curr_idx;
 
     // 2. Expansion & Initial Value
-    uint8_t turn = (uint8_t)temp_game.player_turn;
-    GameState rotated = temp_game;
-    game_cycle_perspective(&rotated, turn, 1);
-    AlphaZeroEvaluation az_eval;
-    eval->evaluate(eval, settings, &rotated, &az_eval);
-
-    // Un-rotate value back to absolute perspective
     double abs_v[3];
-    int diff = (1 - (int)turn + 3) % 3;
-    for (int p = 0; p < 3; p++) abs_v[(p + diff) % 3] = az_eval.value[p];
-
     if (!game_finished_condition(&temp_game)) {
+        uint8_t turn = (uint8_t)temp_game.player_turn;
+        GameState rotated = temp_game;
+        game_cycle_perspective(&rotated, turn, 1);
+        
+        AlphaZeroEvaluation az_eval;
+        eval->evaluate(eval, settings, &rotated, &az_eval);
+
+        // Un-rotate value back to absolute perspective
+        int diff = (1 - (int)turn + 3) % 3;
+        for (int p = 0; p < 3; p++) abs_v[(p + diff) % 3] = az_eval.value[p];
+
         mcts_expand(ctx, curr_idx, settings, &temp_game, eval);
     } else {
         // Anchoring to truth at terminal nodes

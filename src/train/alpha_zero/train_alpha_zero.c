@@ -198,22 +198,15 @@ void run_alpha_zero_training_loop(const AgentConfig* config) {
 
         data_collector_init_game(&dc, &settings);
 
-        printf("started new game\n");
-
         while (!game_finished_condition(&game)) {
             double policy[20];
-            printf("calculating move for player %d\n", game.player_turn);
             uint8_t move = mcts_get_move(&ctx, &settings, &game, eval, policy);
-            printf("move calculated: %d (next player: %d)\n", move, game.player_turn);
             data_collector_record_turn(&dc, &game, policy);
             uint8_t turn = (uint8_t)game.player_turn;
             game_take_move(&settings, &game, turn, move);
             char game_str[128];
             game_to_string(&game, game_str);
-            printf("game:  %s\n", game_str);
         }
-
-        printf("one game finished\n");
 
         uint8_t scores[4];
         get_tournament_scores(&game, scores);

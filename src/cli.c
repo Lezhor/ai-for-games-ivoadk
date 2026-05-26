@@ -26,7 +26,12 @@ void parse_args(int argc, char* argv[], AgentConfig* config) {
     }
 }
 
-void parse_alpha_zero_args(int argc, char* argv[], AgentConfig* config) {
+void parse_alpha_zero_args(int argc, char* argv[], TrainAlphaZeroConfig* config) {
+    // Set defaults
+    config->num_games = 1000; // -1 for infinite
+    config->num_mcts_iterations = 800;
+    config->temperature = 1.0;
+
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--use-nn") == 0) {
             config->use_nn = 1;
@@ -34,6 +39,15 @@ void parse_alpha_zero_args(int argc, char* argv[], AgentConfig* config) {
             config->model_path = argv[++i];
         } else if (strcmp(argv[i], "--training-data-output") == 0 && i + 1 < argc) {
             config->training_data_output = argv[++i];
+        } else if (strcmp(argv[i], "--num-games") == 0 && i + 1 < argc) {
+            config->num_games = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
+            config->seed = (uint32_t)strtoul(argv[++i], NULL, 10);
+            config->seed_provided = 1;
+        } else if (strcmp(argv[i], "--mcts-iterations") == 0 && i + 1 < argc) {
+            config->num_mcts_iterations = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--temperature") == 0 && i + 1 < argc) {
+            config->temperature = atof(argv[++i]);
         }
     }
 }

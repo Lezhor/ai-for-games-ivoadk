@@ -9,24 +9,21 @@
 #endif
 
 int main(int argc, char* argv[]) {
-    AgentConfig config = {0};
-    
-    // Parse AlphaZero specific flags first
-    parse_alpha_zero_args(argc, argv, &config);
-    
-    // Parse network flags (ignoring unknown)
-    parse_args(argc, argv, &config);
 
 #ifdef AGENT_TRAINING
-    if (config.training_data_output == NULL) {
+    TrainAlphaZeroConfig az_config = {0};
+    parse_alpha_zero_args(argc, argv, &az_config);
+    if (az_config.training_data_output == NULL) {
         fprintf(stderr, "Error: --training-data-output <path> is required for training mode.\n");
         return 1;
     }
-    run_alpha_zero_training_loop(&config);
+    run_alpha_zero_training_loop(&az_config);
 #else
+    AgentConfig config = {0};
+    parse_args(argc, argv, &config);
     printf("Starting AlphaZero Agent: %s\n", config.agent_name);
     // TODO: Implement AlphaZero network play logic
-    // This will involve network_client_connect and the standard game loop 
+    // This will involve network_client_connect and the standard game loop
     // using mcts_get_move (once refactored to be shared).
     printf("Network play not yet implemented for AlphaZero.\n");
 #endif

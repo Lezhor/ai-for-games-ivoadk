@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #define MCTS_NODE_POOL_SIZE 10000
-#define MCTS_ITERATIONS 800
 #define EXPLORATION_CONSTANT 1.414
 
 typedef struct {
@@ -137,60 +137,80 @@ static void mcts_iteration(MCTSContext* ctx, const GameSettings* settings, const
     }
 }
 
-static uint8_t mcts_get_move(MCTSContext* ctx, const GameSettings* settings, const GameState* game, AlphaZeroEvaluator* eval, double* out_policy) {
+static uint8_t mcts_get_move(const TrainAlphaZeroConfig* config, MCTSContext* ctx, const GameSettings* settings, const GameState* game, AlphaZeroEvaluator* eval, double* out_policy) {
     ctx->pool_cursor = 0;
     mcts_new_node(ctx, -1, 0xFF, 1.0); // Root
     mcts_expand(ctx, 0, settings, game, eval);
 
-    for (int i = 0; i < MCTS_ITERATIONS; i++) {
+    for (int i = 0; i < config->num_mcts_iterations; i++) {
         mcts_iteration(ctx, settings, game, eval);
     }
 
-    // Extract Policy
+    // Extract Policy with Temperature
     MCTSNode* root = &ctx->pool[0];
     memset(out_policy, 0, sizeof(double) * 20);
-    uint32_t total_visits = 0;
+    double total_transformed_visits = 0;
     int32_t curr = root->first_child_idx;
     while (curr != -1) {
-        total_visits += ctx->pool[curr].visits;
-        curr = ctx->pool[curr].sibling_idx;
-    }
-
-    uint8_t best_move = 0;
-    uint32_t max_visits = 0;
-    curr = root->first_child_idx;
-    while (curr != -1) {
         MCTSNode* c = &ctx->pool[curr];
-        if (total_visits > 0) out_policy[c->move_id] = (double)c->visits / total_visits;
-        if (c->visits > max_visits) {
-            max_visits = c->visits;
-            best_move = c->move_id;
+        if (c->visits > 0) {
+            double val = pow((double)c->visits, 1.0 / config->temperature);
+            total_transformed_visits += val;
         }
         curr = c->sibling_idx;
     }
 
-    return best_move;
+    uint8_t move = 19;
+    if (config->temperature < 0.01) {
+        uint32_t max_v = 0;
+        curr = root->first_child_idx;
+        while (curr != -1) {
+            if (ctx->pool[curr].visits > max_v) {
+                max_v = ctx->pool[curr].visits;
+                move = ctx->pool[curr].move_id;
+            }
+            curr = ctx->pool[curr].sibling_idx;
+        }
+        out_policy[move] = 1.0;
+    } else {
+        double r = lcg_next_double(&ctx->rng) * total_transformed_visits;
+        double acc = 0;
+        curr = root->first_child_idx;
+        while (curr != -1) {
+            MCTSNode* c = &ctx->pool[curr];
+            double val = pow((double)c->visits, 1.0 / config->temperature);
+            acc += val;
+            out_policy[c->move_id] = val / total_transformed_visits;
+            if (acc >= r && move == 19) move = c->move_id;
+            curr = c->sibling_idx;
+        }
+    }
+
+    return move;
 }
 
-void run_alpha_zero_training_loop(const AgentConfig* config) {
-    // TODO: move debug to entry file?
+void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
     printf("Starting AlphaZero training loop...\n");
     printf("Model path: %s\n", config->model_path ? config->model_path : "None");
     printf("Output path: %s\n", config->training_data_output);
+    printf("Iterations: %d, Temperature: %.2f\n", config->num_mcts_iterations, config->temperature);
 
     AlphaZeroEvaluator* eval = config->use_nn ?
         evaluator_create_alpha_zero_nn(config->model_path) :
         evaluator_create_alpha_zero_hardcoded();
 
     MCTSContext ctx;
-    // TODO: random seed
-    lcg_set_seed(&ctx.rng, 43); // Deterministic for now
+    if (config->seed_provided) {
+        lcg_set_seed(&ctx.rng, config->seed);
+    } else {
+        lcg_set_seed(&ctx.rng, (uint64_t)time(NULL));
+    }
 
     DataCollector dc;
     data_collector_create(&dc);
 
-    // TODO: dont repeat infinitly
-    while (1) {
+    int games_played = 0;
+    while (config->num_games == -1 || games_played < config->num_games) {
         GameSettings settings;
         game_init_settings((int32_t)lcg_next_int(&ctx.rng), &settings);
         GameState game;
@@ -200,18 +220,20 @@ void run_alpha_zero_training_loop(const AgentConfig* config) {
 
         while (!game_finished_condition(&game)) {
             double policy[20];
-            uint8_t move = mcts_get_move(&ctx, &settings, &game, eval, policy);
+            uint8_t move = mcts_get_move(config, &ctx, &settings, &game, eval, policy);
             data_collector_record_turn(&dc, &game, policy);
             uint8_t turn = (uint8_t)game.player_turn;
             game_take_move(&settings, &game, turn, move);
-            char game_str[128];
-            game_to_string(&game, game_str);
         }
 
         uint8_t scores[4];
         get_tournament_scores(&game, scores);
         double final_v[3] = { (double)scores[1]/2.0, (double)scores[2]/2.0, (double)scores[3]/2.0 };
         data_collector_flush_game(&dc, final_v, config->training_data_output);
+        
+        games_played++;
+        printf("."); fflush(stdout);
+        if (games_played % 50 == 0) printf(" [%d games]\n", games_played);
     }
 
     data_collector_free(&dc);

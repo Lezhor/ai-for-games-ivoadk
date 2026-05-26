@@ -1,8 +1,19 @@
 #ifndef TRAIN_ALPHA_ZERO_H
 #define TRAIN_ALPHA_ZERO_H
 
-#include "network/network_client.h"
+#include <stdint.h>
 
-void run_alpha_zero_training_loop(const AgentConfig* config);
+typedef struct {
+    int use_nn;
+    const char* model_path;
+    const char* training_data_output;
+    int num_games;
+    uint32_t seed;
+    int seed_provided;
+    int num_mcts_iterations;
+    double temperature;
+} TrainAlphaZeroConfig;
+
+void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config);
 
 #endif // TRAIN_ALPHA_ZERO_H

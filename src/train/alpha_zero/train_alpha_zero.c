@@ -235,8 +235,11 @@ void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
         data_collector_flush_game(&dc, final_v, config->training_data_output);
 
         games_played++;
-        printf("."); fflush(stdout);
-        if (games_played % 50 == 0) printf(" [%d games]\n", games_played);
+        if (games_played % 20 == 0) {
+            printf(".");
+            fflush(stdout);
+        }
+        if (games_played % 1000 == 0) printf(" [%d games]\n", games_played);
     }
 
     data_collector_free(&dc);

@@ -24,6 +24,7 @@ typedef struct {
 typedef struct {
     MCTSNode pool[MCTS_NODE_POOL_SIZE];
     uint32_t pool_cursor;
+    int32_t path_buffer[256]; // just to reuse memory
     lcg_t rng;
 } MCTSContext;
 
@@ -69,15 +70,17 @@ static int32_t mcts_select_child(const TrainAlphaZeroConfig* config, MCTSContext
     int32_t best_child = -1;
     double best_uct = -1e20;
 
+    double sqrt_parent_visits = sqrt((double)n->visits + 1e-9);
+
     int32_t curr = n->first_child_idx;
     while (curr != -1) {
         MCTSNode* c = &ctx->pool[curr];
         double uct;
         if (c->visits == 0) {
-            uct = config->c_puct * c->prior_prob * sqrt((double)n->visits + 1);
+            uct = config->c_puct * c->prior_prob * sqrt_parent_visits;
         } else {
             double q = c->value_sum[player - 1] / c->visits;
-            double u = config->c_puct * c->prior_prob * sqrt((double)n->visits) / (1.0 + c->visits);
+            double u = config->c_puct * c->prior_prob * sqrt((double)n->visits) / (1.0 + (double)c->visits);
             uct = q + u;
         }
 
@@ -90,21 +93,19 @@ static int32_t mcts_select_child(const TrainAlphaZeroConfig* config, MCTSContext
     return best_child;
 }
 
-// TODO: reuse path_buffer
 static void mcts_iteration(const TrainAlphaZeroConfig* config, MCTSContext* ctx, const GameSettings* settings, const GameState* game, AlphaZeroEvaluator* eval) {
-    int32_t path[128];
     int path_len = 0;
     int32_t curr_idx = 0;
     GameState temp_game = *game;
 
     // 1. Selection
     while (ctx->pool[curr_idx].first_child_idx != -1) {
-        path[path_len++] = curr_idx;
+        ctx->path_buffer[path_len++] = curr_idx;
         uint8_t turn = (uint8_t)temp_game.player_turn;
         curr_idx = mcts_select_child(config, ctx, curr_idx, turn);
         game_take_move(settings, &temp_game, turn, ctx->pool[curr_idx].move_id);
     }
-    path[path_len++] = curr_idx;
+    ctx->path_buffer[path_len++] = curr_idx;
 
     // 2. Expansion & Initial Value
     double abs_v[3];
@@ -130,7 +131,7 @@ static void mcts_iteration(const TrainAlphaZeroConfig* config, MCTSContext* ctx,
 
     // 3. Backpropagation
     for (int i = 0; i < path_len; i++) {
-        MCTSNode* n = &ctx->pool[path[i]];
+        MCTSNode* n = &ctx->pool[ctx->path_buffer[i]];
         n->visits++;
         for (int p = 0; p < 3; p++) n->value_sum[p] += abs_v[p];
     }

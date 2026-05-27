@@ -30,7 +30,9 @@ static uint8_t az_get_move(Agent* self, const GameSettings* settings, const Game
         iterations++;
     }
 
+#ifndef NDEBUG
     printf("MCTS Iterations: %d\n", iterations);
+#endif
     return mcts_select_best_move(&state->mcts_ctx);
 }
 

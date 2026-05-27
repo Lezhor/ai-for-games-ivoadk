@@ -166,17 +166,31 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
     done
     wait "${PIDS[@]}" 2>/dev/null
 
-    # Cleanup CSV files (remove last potentially partial line)
-    # Using sed -i '' for macOS compatibility
+    # Compact and Clean CSV files
+    FINAL_CSV="$DATA_DIR/epoch$EPOCH_STR.csv"
+    echo "Compacting and cleaning data into $FINAL_CSV..."
+    
+    # Clear final file if it exists
+    > "$FINAL_CSV"
+    
     for f in "${FILES[@]}"; do
         if [ -f "$f" ]; then
+            # Clean each file:
+            # 1. Remove potentially partial last line (if process was killed)
+            # 2. Use awk to ensure each line has exactly 105 columns (82 features + 20 policy + 3 value)
+            # 3. Append to the final epoch CSV
             sed -i '' '$ d' "$f"
+            awk -F',' 'NF==105' "$f" >> "$FINAL_CSV"
+            # Optional: Remove the instance files to save space
+            rm "$f"
         fi
     done
 
     END_TIME=$(date +%s)
     DURATION=$(( (END_TIME - START_TIME) / 60 ))
-    echo "$TOTAL_ROWS rows of data generated for epoch $EPOCH_STR in $DURATION minutes."
+    # Re-calculate total rows after cleaning
+    CLEAN_ROWS=$(wc -l < "$FINAL_CSV" | tr -d ' ')
+    echo "$CLEAN_ROWS rows of clean data generated for epoch $EPOCH_STR in $DURATION minutes."
 
     # NN Training
     echo "Starting NN training for epoch $EPOCH_STR..."
@@ -185,16 +199,12 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
     for ((e=0; e<=CURRENT_EPOCH; e++)); do
         if [ $e -ge $((CURRENT_EPOCH - PAST_EPOCHS)) ]; then
             E_STR=$(printf "%02d" $e)
-            # Match various naming conventions: epoch1.csv, epoch01.csv, epoch01.00.csv, etc.
-            for pattern in "epoch$e.csv" "epoch$E_STR.csv" "epoch$e.*.csv" "epoch$E_STR.*.csv"; do
-                # Use a temporary array to expand the glob safely
-                MATCHES=($DATA_DIR/$pattern)
-                for f in "${MATCHES[@]}"; do
-                    if [ -f "$f" ]; then
-                        DATA_PATHS+=("$f")
-                    fi
-                done
-            done
+            # Only need to look for the single compacted file now
+            if [ -f "$DATA_DIR/epoch$E_STR.csv" ]; then
+                DATA_PATHS+=("$DATA_DIR/epoch$E_STR.csv")
+            elif [ -f "$DATA_DIR/epoch$e.csv" ]; then
+                DATA_PATHS+=("$DATA_DIR/epoch$e.csv")
+            fi
         fi
     done
 

@@ -231,16 +231,16 @@ int main(int argc, char* argv[]) {
     }
 
     printf("\n\nTournament Summary (Aggregated):\n");
-    printf("-------------------------------------------------\n");
-    printf("%-30s | %-5s | %-7s\n", "Agent (Type:Model)", "Games", "Avg Pts");
-    printf("-------------------------------------------------\n");
+    printf("------------------------------------------------------\n");
+    printf("%-35s | %-5s | %-7s\n", "Agent (Type:Model)", "Games", "Avg Pts");
+    printf("------------------------------------------------------\n");
     for (int i = 0; i < stats_count; i++) {
-        printf("%-30s | %-5llu | %-7.2f\n",
+        printf("%-35s | %-5llu | %-7.2f\n",
             stats[i].name,
             (unsigned long long)stats[i].games_played,
             (double)stats[i].tournament_points / (double)stats[i].games_played);
     }
-    printf("-------------------------------------------------\n");
+    printf("------------------------------------------------------\n");
     printf("Total time: %.2fs (%.2f ms/game)\n",
         (double)(end_time - start_time) / 1000.0,
         (double)(end_time - start_time) / num_games);

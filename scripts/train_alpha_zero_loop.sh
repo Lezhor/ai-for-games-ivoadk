@@ -23,7 +23,7 @@ C_PUCT=1.414
 TRAIN_EPOCHS=100  # Total Alpha Zero cycles
 NN_EPOCHS=10      # Iterations in train.py
 BATCH_SIZE=2048
-LR=0.001
+LR=0.0002
 
 # Paths
 DATA_DIR="data/train_alpha_zero"
@@ -112,14 +112,14 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
         INSTANCE_STR=$(printf "%02d" $i)
         OUTPUT_FILE="$DATA_DIR/epoch$EPOCH_STR.$INSTANCE_STR.csv"
         FILES+=("$OUTPUT_FILE")
-        
+
         # Build command
         CMD=("$MCTS_BIN" "--training-data-output" "$OUTPUT_FILE" "--mcts-iterations" "$MCTS_ITERATIONS" "--temperature" "$TEMPERATURE" "--c-puct" "$C_PUCT" "--num-games" "-1" "--p-past" "$P_PAST" "--p-minmax" "$P_MINMAX" "--p-random" "$P_RANDOM" "--p-idler" "$P_IDLER")
-        
+
         if [ $CURRENT_EPOCH -gt 0 ]; then
             PREV_EPOCH_STR=$(printf "%02d" $((CURRENT_EPOCH - 1)))
             CMD+=("--use-nn" "--model-path" "$MODEL_DIR/epoch$PREV_EPOCH_STR.bin")
-            
+
             # Dynamic Past Model: use epoch from 3 cycles ago, or epoch 0
             PAST_VAL=$((CURRENT_EPOCH - 3))
             if [ $PAST_VAL -lt 0 ]; then PAST_VAL=0; fi
@@ -134,13 +134,13 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
         if [ "$ENABLE_LOG" = true ]; then
             LOG_TARGET="$DATA_DIR/instance_$INSTANCE_STR.log"
         fi
-        
+
         "${CMD[@]}" > "$LOG_TARGET" 2>&1 &
         PIDS+=($!)
     done
 
     START_TIME=$(date +%s)
-    
+
     # Progress Bar Monitoring
     # Pre-allocate space for progress bars to avoid overwriting terminal history
     for ((i=0; i<INSTANCES+1; i++)); do echo ""; done
@@ -148,7 +148,7 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
     while true; do
         TOTAL_ROWS=0
         ROWS_PER_INSTANCE=()
-        
+
         for f in "${FILES[@]}"; do
             if [ -f "$f" ]; then
                 R=$(wc -l < "$f" | tr -d ' ')
@@ -167,17 +167,17 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
             INSTANCE_TARGET=$((CALC_TARGET_ROWS / INSTANCES))
             PERCENT=$((R * 100 / INSTANCE_TARGET))
             if [ $PERCENT -gt 100 ]; then PERCENT=100; fi
-            
+
             # Simple bar
             BAR_LEN=30
             FILLED=$((PERCENT * BAR_LEN / 100))
             BAR=$(printf "%${FILLED}s" | tr ' ' '#')
             EMPTY=$(printf "%$((BAR_LEN - FILLED))s" | tr ' ' '-')
-            
+
             # \r returns to start of line, \033[K clears the existing line
             printf "\r\033[KInstance %02d: [%s%s] %d%% (%d rows)\n" $i "$BAR" "$EMPTY" $PERCENT $R
         done
-        
+
         TOTAL_PERCENT=$((TOTAL_ROWS * 100 / CALC_TARGET_ROWS))
         if [ $TOTAL_PERCENT -gt 100 ]; then TOTAL_PERCENT=100; fi
         BAR_LEN=30
@@ -202,10 +202,10 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
     # Compact and Clean CSV files
     FINAL_CSV="$DATA_DIR/epoch$EPOCH_STR.csv"
     echo "Compacting and cleaning data into $FINAL_CSV..."
-    
+
     # Clear final file if it exists
     > "$FINAL_CSV"
-    
+
     for f in "${FILES[@]}"; do
         if [ -f "$f" ]; then
             # Clean each file:
@@ -227,7 +227,7 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
 
     # NN Training
     echo "Starting NN training for epoch $EPOCH_STR..."
-    
+
     DATA_PATHS=()
     for ((e=0; e<=CURRENT_EPOCH; e++)); do
         if [ $e -ge $((CURRENT_EPOCH - PAST_EPOCHS)) ]; then
@@ -272,6 +272,6 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
     fi
 
     echo "Finished epoch $EPOCH_STR. Model saved to $MODEL_DIR/epoch$EPOCH_STR.bin"
-    
+
     CURRENT_EPOCH=$((CURRENT_EPOCH + 1))
 done

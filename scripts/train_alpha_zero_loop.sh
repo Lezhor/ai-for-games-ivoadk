@@ -206,12 +206,19 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
         PYTHON_EXEC="python3"
     fi
 
-    $PYTHON_EXEC "$TRAIN_SCRIPT" \
+    TRAIN_CMD=($PYTHON_EXEC "$TRAIN_SCRIPT" \
         --data_paths "${DATA_PATHS[@]}" \
         --output_model "$MODEL_DIR/epoch$EPOCH_STR.bin" \
         --epochs "$NN_EPOCHS" \
         --batch_size "$BATCH_SIZE" \
-        --lr "$LR"
+        --lr "$LR")
+
+    if [ $CURRENT_EPOCH -gt 0 ]; then
+        PREV_EPOCH_STR=$(printf "%02d" $((CURRENT_EPOCH - 1)))
+        TRAIN_CMD+=("--input_model" "$MODEL_DIR/epoch$PREV_EPOCH_STR.bin")
+    fi
+
+    "${TRAIN_CMD[@]}"
 
     if [ $? -ne 0 ]; then
         echo "Training failed for epoch $EPOCH_STR. Exiting."

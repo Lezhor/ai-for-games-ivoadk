@@ -76,6 +76,9 @@ def train(args):
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
 
     model = AlphaZeroMLP()
+    if args.input_model and os.path.exists(args.input_model):
+        print(f"Loading weights from {args.input_model} for fine-tuning...")
+        load_from_bin(model, args.input_model)
     
     # Device selection
     if torch.cuda.is_available():
@@ -121,6 +124,44 @@ def train(args):
 
     export_to_bin(model.to("cpu"), args.output_model)
 
+def load_from_bin(model, input_path):
+    with open(input_path, 'rb') as f:
+        # Header
+        num_hidden = struct.unpack('I', f.read(4))[0]
+        dims = []
+        for _ in range(num_hidden + 1):
+            dims.append(struct.unpack('I', f.read(4))[0])
+        policy_dim = struct.unpack('I', f.read(4))[0]
+        value_dim = struct.unpack('I', f.read(4))[0]
+        
+        # Weights & Biases
+        with torch.no_grad():
+            for layer in model.hidden_layers:
+                weight_size = layer.weight.numel()
+                bias_size = layer.bias.numel()
+                
+                weights = np.frombuffer(f.read(weight_size * 4), dtype=np.float32).reshape(layer.weight.shape)
+                biases = np.frombuffer(f.read(bias_size * 4), dtype=np.float32).reshape(layer.bias.shape)
+                
+                layer.weight.copy_(torch.from_numpy(weights.copy()))
+                layer.bias.copy_(torch.from_numpy(biases.copy()))
+            
+            # Policy Head
+            p_weight_size = model.policy_head.weight.numel()
+            p_bias_size = model.policy_head.bias.numel()
+            p_weights = np.frombuffer(f.read(p_weight_size * 4), dtype=np.float32).reshape(model.policy_head.weight.shape)
+            p_biases = np.frombuffer(f.read(p_bias_size * 4), dtype=np.float32).reshape(model.policy_head.bias.shape)
+            model.policy_head.weight.copy_(torch.from_numpy(p_weights.copy()))
+            model.policy_head.bias.copy_(torch.from_numpy(p_biases.copy()))
+            
+            # Value Head
+            v_weight_size = model.value_head.weight.numel()
+            v_bias_size = model.value_head.bias.numel()
+            v_weights = np.frombuffer(f.read(v_weight_size * 4), dtype=np.float32).reshape(model.value_head.weight.shape)
+            v_biases = np.frombuffer(f.read(v_bias_size * 4), dtype=np.float32).reshape(model.value_head.bias.shape)
+            model.value_head.weight.copy_(torch.from_numpy(v_weights.copy()))
+            model.value_head.bias.copy_(torch.from_numpy(v_biases.copy()))
+
 def export_to_bin(model, output_path):
     model.eval()
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -156,6 +197,7 @@ def export_to_bin(model, output_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_paths', nargs='+', required=True, help='Paths to CSV files or directories')
+    parser.add_argument('--input_model', help='Path to existing binary model for fine-tuning')
     parser.add_argument('--output_model', default='models/alpha_zero/model.bin', help='Output binary path')
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=1024)

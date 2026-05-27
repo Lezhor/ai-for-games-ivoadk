@@ -90,10 +90,13 @@ def train(args):
     # Value head uses MSE against final game outcomes
     criterion_value = nn.MSELoss()
 
+    from tqdm import tqdm
+
     model.train()
     for epoch in range(args.epochs):
         total_loss = 0
-        for features, target_policy, target_value in dataloader:
+        pbar = tqdm(dataloader, desc=f"Epoch {epoch+1}/{args.epochs}")
+        for features, target_policy, target_value in pbar:
             if torch.cuda.is_available():
                 features, target_policy, target_value = features.cuda(), target_policy.cuda(), target_value.cuda()
             elif torch.backends.mps.is_available():
@@ -112,8 +115,9 @@ def train(args):
             optimizer.step()
             
             total_loss += loss.item()
+            pbar.set_postfix(loss=loss.item())
         
-        print(f"Epoch {epoch+1}/{args.epochs}, Loss: {total_loss/len(dataloader):.6f}")
+        print(f"Epoch {epoch+1}/{args.epochs} Complete, Average Loss: {total_loss/len(dataloader):.6f}")
 
     export_to_bin(model.to("cpu"), args.output_model)
 

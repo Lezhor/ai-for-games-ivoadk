@@ -7,12 +7,20 @@
     },
     "configurePresets": [
         {
+            "name": "base-release",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_C_FLAGS_RELEASE": "-O3 -march=native"
+            }
+        },
+        {
             "name": "gui-release",
             "displayName": "GUI Release",
+            "inherits": "base-release",
             "binaryDir": "${sourceDir}/build/gui-release",
             "generator": "Ninja",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
                 "ENABLE_LTO": "OFF",
                 "ENABLE_GUI": "ON"
             },
@@ -34,10 +42,10 @@
         {
             "name": "tui-release",
             "displayName": "TUI Release",
+            "inherits": "base-release",
             "binaryDir": "${sourceDir}/build/tui-release",
             "generator": "Ninja",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
                 "ENABLE_LTO": "OFF",
                 "ENABLE_TUI": "ON"
             },
@@ -59,10 +67,10 @@
         {
             "name": "headless-release",
             "displayName": "Headless Release",
+            "inherits": "base-release",
             "binaryDir": "${sourceDir}/build/headless-release",
             "generator": "Ninja",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "ENABLE_LTO": "ON"
             },

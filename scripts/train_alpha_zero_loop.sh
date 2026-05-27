@@ -4,19 +4,25 @@
 RESUME_EPOCH=-1
 INSTANCES=4
 TARGET_ROWS=10000
-PAST_EPOCHS=3
+PAST_EPOCHS=7
 EPOCH_0_ROW_MULTIPLIER=5
 ENABLE_LOG=false
 
+# Multi-Agent Probabilities
+P_PAST=0.10
+P_MINMAX=0.05
+P_RANDOM=0.05
+P_IDLER=0.01
+
 # MCTS Defaults
-MCTS_ITERATIONS=800
+MCTS_ITERATIONS=600
 TEMPERATURE=1.0
 C_PUCT=1.414
 
 # Training Defaults
 TRAIN_EPOCHS=100  # Total Alpha Zero cycles
 NN_EPOCHS=10      # Iterations in train.py
-BATCH_SIZE=1024
+BATCH_SIZE=2048
 LR=0.001
 
 # Paths
@@ -52,6 +58,10 @@ usage() {
     echo "  --batch-size N         NN training batch size (default: $BATCH_SIZE)"
     echo "  --lr F                 NN training learning rate (default: $LR)"
     echo "  --log                  Enable writing instance logs to $DATA_DIR"
+    echo "  --p-past F             Prob of playing against past version (default: $P_PAST)"
+    echo "  --p-minmax F           Prob of playing against minmax expert (default: $P_MINMAX)"
+    echo "  --p-random F           Prob of playing against random bot (default: $P_RANDOM)"
+    echo "  --p-idler F            Prob of playing against forfeiter (default: $P_IDLER)"
     exit 1
 }
 
@@ -70,6 +80,10 @@ while [[ $# -gt 0 ]]; do
         --batch-size) BATCH_SIZE="$2"; shift 2 ;;
         --lr) LR="$2"; shift 2 ;;
         --log) ENABLE_LOG=true; shift ;;
+        --p-past) P_PAST="$2"; shift 2 ;;
+        --p-minmax) P_MINMAX="$2"; shift 2 ;;
+        --p-random) P_RANDOM="$2"; shift 2 ;;
+        --p-idler) P_IDLER="$2"; shift 2 ;;
         -h|--help) usage ;;
         *) echo "Unknown option: $1"; usage ;;
     esac
@@ -100,11 +114,19 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
         FILES+=("$OUTPUT_FILE")
         
         # Build command
-        CMD=("$MCTS_BIN" "--training-data-output" "$OUTPUT_FILE" "--mcts-iterations" "$MCTS_ITERATIONS" "--temperature" "$TEMPERATURE" "--c-puct" "$C_PUCT" "--num-games" "-1")
+        CMD=("$MCTS_BIN" "--training-data-output" "$OUTPUT_FILE" "--mcts-iterations" "$MCTS_ITERATIONS" "--temperature" "$TEMPERATURE" "--c-puct" "$C_PUCT" "--num-games" "-1" "--p-past" "$P_PAST" "--p-minmax" "$P_MINMAX" "--p-random" "$P_RANDOM" "--p-idler" "$P_IDLER")
         
         if [ $CURRENT_EPOCH -gt 0 ]; then
             PREV_EPOCH_STR=$(printf "%02d" $((CURRENT_EPOCH - 1)))
             CMD+=("--use-nn" "--model-path" "$MODEL_DIR/epoch$PREV_EPOCH_STR.bin")
+            
+            # Dynamic Past Model: use epoch from 3 cycles ago, or epoch 0
+            PAST_VAL=$((CURRENT_EPOCH - 3))
+            if [ $PAST_VAL -lt 0 ]; then PAST_VAL=0; fi
+            PAST_STR=$(printf "%02d" $PAST_VAL)
+            if [ -f "$MODEL_DIR/epoch$PAST_STR.bin" ]; then
+                CMD+=("--past-model-path" "$MODEL_DIR/epoch$PAST_STR.bin")
+            fi
         fi
 
         # Run in background

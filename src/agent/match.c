@@ -166,7 +166,10 @@ int main(int argc, char* argv[]) {
         for (int i = 1; i <= 3; i++) {
             AgentDef* def = &agent_pool[idx[i-1]];
             if (def->model_path[0] != '\0') {
-                snprintf(display_names[i], 127, "%s:%s", def->type, def->model_path);
+                const char* filename = strrchr(def->model_path, '/');
+                if (filename) filename++; // Skip the slash
+                else filename = def->model_path;
+                snprintf(display_names[i], 127, "%s:%s", def->type, filename);
             } else {
                 snprintf(display_names[i], 127, "%s", def->type);
             }
@@ -214,18 +217,30 @@ int main(int argc, char* argv[]) {
     uint64_t end_time = time_get_now_ms();
     if (csv) fclose(csv);
 
+    // Sort by average points (descending)
+    for (int i = 0; i < stats_count - 1; i++) {
+        for (int j = 0; j < stats_count - i - 1; j++) {
+            double avg_j = (double)stats[j].tournament_points / (double)stats[j].games_played;
+            double avg_next = (double)stats[j+1].tournament_points / (double)stats[j+1].games_played;
+            if (avg_j < avg_next) {
+                AgentStats temp = stats[j];
+                stats[j] = stats[j+1];
+                stats[j+1] = temp;
+            }
+        }
+    }
+
     printf("\n\nTournament Summary (Aggregated):\n");
-    printf("----------------------------------------------------------------------------------------------------\n");
-    printf("%-50s | %-10s | %-10s | %-10s\n", "Agent (Type:Model)", "Games", "Total Pts", "Avg Pts");
-    printf("----------------------------------------------------------------------------------------------------\n");
+    printf("-------------------------------------------------\n");
+    printf("%-30s | %-5s | %-7s\n", "Agent (Type:Model)", "Games", "Avg Pts");
+    printf("-------------------------------------------------\n");
     for (int i = 0; i < stats_count; i++) {
-        printf("%-50s | %-10llu | %-10llu | %-10.2f\n",
+        printf("%-30s | %-5llu | %-7.2f\n",
             stats[i].name,
             (unsigned long long)stats[i].games_played,
-            (unsigned long long)stats[i].tournament_points,
             (double)stats[i].tournament_points / (double)stats[i].games_played);
     }
-    printf("----------------------------------------------------------------------------------------------------\n");
+    printf("-------------------------------------------------\n");
     printf("Total time: %.2fs (%.2f ms/game)\n",
         (double)(end_time - start_time) / 1000.0,
         (double)(end_time - start_time) / num_games);

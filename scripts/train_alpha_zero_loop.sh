@@ -186,11 +186,15 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
     for ((e=0; e<=CURRENT_EPOCH; e++)); do
         if [ $e -ge $((CURRENT_EPOCH - PAST_EPOCHS)) ]; then
             E_STR=$(printf "%02d" $e)
-            # Correctly expand globs and verify files exist
-            for f in $DATA_DIR/epoch$E_STR.*.csv; do
-                if [ -f "$f" ]; then
-                    DATA_PATHS+=("$f")
-                fi
+            # Match various naming conventions: epoch1.csv, epoch01.csv, epoch01.00.csv, etc.
+            for pattern in "epoch$e.csv" "epoch$E_STR.csv" "epoch$e.*.csv" "epoch$E_STR.*.csv"; do
+                # Use a temporary array to expand the glob safely
+                MATCHES=($DATA_DIR/$pattern)
+                for f in "${MATCHES[@]}"; do
+                    if [ -f "$f" ]; then
+                        DATA_PATHS+=("$f")
+                    fi
+                done
             done
         fi
     done

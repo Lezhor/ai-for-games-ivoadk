@@ -109,6 +109,9 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
     START_TIME=$(date +%s)
     
     # Progress Bar Monitoring
+    # Pre-allocate space for progress bars to avoid overwriting terminal history
+    for ((i=0; i<INSTANCES+1; i++)); do echo ""; done
+
     while true; do
         TOTAL_ROWS=0
         ROWS_PER_INSTANCE=()
@@ -123,12 +126,7 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
             TOTAL_ROWS=$((TOTAL_ROWS + R))
         done
 
-        # Print progress bars
-        # Move cursor up for each instance + 1 for total
-        for ((i=0; i<INSTANCES+1; i++)); do
-            echo -ne "\033[K" # Clear line
-        done
-        # Return cursor
+        # Move cursor back to the top of the progress bar block
         echo -ne "\033[$((INSTANCES+1))A"
 
         for i in "${!ROWS_PER_INSTANCE[@]}"; do
@@ -143,7 +141,8 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
             BAR=$(printf "%${FILLED}s" | tr ' ' '#')
             EMPTY=$(printf "%$((BAR_LEN - FILLED))s" | tr ' ' '-')
             
-            printf "Instance %02d: [%s%s] %d%% (%d rows)\n" $i "$BAR" "$EMPTY" $PERCENT $R
+            # \r returns to start of line, \033[K clears the existing line
+            printf "\r\033[KInstance %02d: [%s%s] %d%% (%d rows)\n" $i "$BAR" "$EMPTY" $PERCENT $R
         done
         
         TOTAL_PERCENT=$((TOTAL_ROWS * 100 / CALC_TARGET_ROWS))
@@ -152,12 +151,12 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
         FILLED=$((TOTAL_PERCENT * BAR_LEN / 100))
         BAR=$(printf "%${FILLED}s" | tr ' ' '=')
         EMPTY=$(printf "%$((BAR_LEN - FILLED))s" | tr ' ' '-')
-        printf "Total:       [%s%s] %d%% (%d/%d rows)\n" "$BAR" "$EMPTY" $TOTAL_PERCENT $TOTAL_ROWS $CALC_TARGET_ROWS
+        printf "\r\033[KTotal:       [%s%s] %d%% (%d/%d rows)\n" "$BAR" "$EMPTY" $TOTAL_PERCENT $TOTAL_ROWS $CALC_TARGET_ROWS
 
         if [ $TOTAL_ROWS -ge $CALC_TARGET_ROWS ]; then
             break
         fi
-        sleep 2
+        sleep 10
     done
 
     # Stop instances

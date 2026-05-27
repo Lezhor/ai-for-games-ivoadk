@@ -103,8 +103,12 @@ void mcts_iteration(MCTSContext* ctx, const GameSettings* settings, const GameSt
         AlphaZeroEvaluation az_eval;
         eval->evaluate(eval, settings, &rotated, &az_eval);
 
-        int diff = (1 - (int)turn + 3) % 3;
-        for (int p = 0; p < 3; p++) abs_v[(p + diff) % 3] = az_eval.value[p];
+        // Un-rotate value back to absolute perspective
+        // Absolute[(p + turn - 1) % 3] = Rotated[p]
+        int offset = (int)turn - 1;
+        for (int p = 0; p < 3; p++) {
+            abs_v[(p + offset) % 3] = az_eval.value[p];
+        }
 
         mcts_expand(ctx, curr_idx, settings, &temp_game, eval);
     } else {

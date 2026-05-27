@@ -25,6 +25,17 @@ MODEL_DIR="models/alpha_zero"
 MCTS_BIN="./build/headless-release/train-alpha_zero"
 TRAIN_SCRIPT="models/train/train.py"
 
+# Cleanup function for Ctrl+C
+cleanup() {
+    echo -e "\n\nInterrupted. Killing background processes..."
+    for pid in "${PIDS[@]}"; do
+        kill -9 "$pid" 2>/dev/null
+    done
+    exit 1
+}
+
+trap cleanup SIGINT
+
 # Help
 usage() {
     echo "Usage: $0 [options]"
@@ -162,7 +173,7 @@ while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
     # Stop instances
     echo "Target reached. Stopping MCTS processes..."
     for pid in "${PIDS[@]}"; do
-        kill "$pid" 2>/dev/null
+        kill -9 "$pid" 2>/dev/null
     done
     wait "${PIDS[@]}" 2>/dev/null
 

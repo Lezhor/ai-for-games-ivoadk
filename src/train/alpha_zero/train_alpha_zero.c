@@ -73,39 +73,57 @@ void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
     printf("P_Current: %.2f, P_Past: %.2f, P_MinMax: %.2f, P_Random: %.2f, P_Idler: %.2f\n",
            config->p_current, config->p_past, config->p_minmax, config->p_random, config->p_idler);
 
+    AlphaZeroEvaluator* eval_current = NULL;
+    AlphaZeroEvaluator* eval_past = NULL;
+    Agent* agent_minmax = NULL;
+    Agent* agent_random = NULL;
+    Agent* agent_idler = NULL;
+    MCTSContext* ctx_current = NULL;
+    MCTSContext* ctx_past = NULL;
+
     // Initialize Evaluators
-    AlphaZeroEvaluator* eval_current = config->use_nn ?
+    eval_current = config->use_nn ?
         evaluator_create_alpha_zero_nn(config->model_path) :
         evaluator_create_alpha_zero_hardcoded();
+    
+    if (!eval_current) {
+        fprintf(stderr, "Failed to create current evaluator.\n");
+        return;
+    }
 
-    AlphaZeroEvaluator* eval_past = NULL;
     if (config->p_past > 0 && config->past_model_path) {
         eval_past = evaluator_create_alpha_zero_nn(config->past_model_path);
+        if (!eval_past) {
+            fprintf(stderr, "Warning: Failed to load past model from %s\n", config->past_model_path);
+        }
     }
 
     // Initialize Other Agents
-    Agent* agent_minmax = NULL;
     if (config->p_minmax > 0) {
         Evaluator* m_eval = evaluator_create_minmax_linear_complex("models/minmax_linear_complex/best.txt");
         agent_minmax = agent_create_minmax(m_eval, 5, false);
     }
 
-    Agent* agent_random = NULL;
     if (config->p_random > 0) {
         agent_random = agent_create_random((uint64_t)time(NULL));
     }
 
-    Agent* agent_idler = NULL;
     if (config->p_idler > 0) {
         agent_idler = agent_create_idler();
     }
 
-    MCTSContext ctx_current;
-    mcts_init_context(&ctx_current, config->seed_provided ? config->seed : (uint64_t)time(NULL), config->c_puct);
+    ctx_current = malloc(sizeof(MCTSContext));
+    if (!ctx_current) {
+        fprintf(stderr, "Failed to allocate current MCTS context\n");
+        goto cleanup;
+    }
+    mcts_init_context(ctx_current, config->seed_provided ? config->seed : (uint64_t)time(NULL), config->c_puct);
 
-    MCTSContext ctx_past;
     if (eval_past) {
-        mcts_init_context(&ctx_past, (uint64_t)time(NULL) + 123, config->c_puct);
+        ctx_past = malloc(sizeof(MCTSContext));
+        if (ctx_past) {
+            mcts_init_context(ctx_past, (uint64_t)time(NULL) + 123, config->c_puct);
+        }
     }
 
     DataCollector dc;
@@ -114,16 +132,16 @@ void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
     int games_played = 0;
     while (config->num_games == -1 || games_played < config->num_games) {
         GameSettings settings;
-        game_init_settings((int32_t)lcg_next_int(&ctx_current.rng), &settings);
+        game_init_settings((int32_t)lcg_next_int(&ctx_current->rng), &settings);
         GameState game;
         game.v = GAME_STATE_DEFAULT_VALUE;
 
         // Assign Roles for this game
         AgentRole roles[4];
         for (int p = 1; p <= 3; p++) {
-            double r = lcg_next_double(&ctx_current.rng);
+            double r = lcg_next_double(&ctx_current->rng);
             if (r < config->p_current) roles[p] = ROLE_CURRENT;
-            else if (r < config->p_current + config->p_past && eval_past) roles[p] = ROLE_PAST;
+            else if (r < config->p_current + config->p_past && eval_past && ctx_past) roles[p] = ROLE_PAST;
             else if (r < config->p_current + config->p_past + config->p_minmax && agent_minmax) roles[p] = ROLE_MINMAX;
             else if (r < config->p_current + config->p_past + config->p_minmax + config->p_random && agent_random) roles[p] = ROLE_RANDOM;
             else if (r < config->p_current + config->p_past + config->p_minmax + config->p_random + config->p_idler && agent_idler) roles[p] = ROLE_IDLER;
@@ -138,13 +156,13 @@ void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
 
             if (roles[turn] == ROLE_CURRENT) {
                 double policy[20];
-                move = train_mcts_get_move(config, &ctx_current, &settings, &game, eval_current, policy);
+                move = train_mcts_get_move(config, ctx_current, &settings, &game, eval_current, policy);
                 data_collector_record_turn(&dc, &game, policy);
             } else if (roles[turn] == ROLE_PAST) {
                 // Use a lower temperature for past versions to make them strong opponents
                 TrainAlphaZeroConfig past_config = *config;
                 past_config.temperature = 0.1;
-                move = train_mcts_get_move(&past_config, &ctx_past, &settings, &game, eval_past, NULL);
+                move = train_mcts_get_move(&past_config, ctx_past, &settings, &game, eval_past, NULL);
             } else if (roles[turn] == ROLE_MINMAX) {
                 move = agent_minmax->get_move(agent_minmax, &settings, &game, turn, time_get_now_ms() + 100);
             } else if (roles[turn] == ROLE_RANDOM) {
@@ -171,10 +189,13 @@ void run_alpha_zero_training_loop(const TrainAlphaZeroConfig* config) {
 
     printf("\nTraining finished!\n");
 
+cleanup:
     data_collector_free(&dc);
-    eval_current->free(eval_current);
+    if (eval_current) eval_current->free(eval_current);
     if (eval_past) eval_past->free(eval_past);
     if (agent_minmax) agent_minmax->free(agent_minmax);
     if (agent_random) agent_random->free(agent_random);
     if (agent_idler) agent_idler->free(agent_idler);
+    if (ctx_current) free(ctx_current);
+    if (ctx_past) free(ctx_past);
 }

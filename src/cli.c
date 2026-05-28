@@ -32,12 +32,29 @@ void parse_alpha_zero_args(int argc, char* argv[], TrainAlphaZeroConfig* config)
     config->num_mcts_iterations = 800;
     config->temperature = 1.0;
     config->c_puct = 1.414;
+    
+    config->p_current = 1.0;
+    config->p_past = 0.0;
+    config->p_minmax = 0.0;
+    config->p_random = 0.0;
+    config->p_idler = 0.0;
+    config->past_model_path = NULL;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--use-nn") == 0) {
             config->use_nn = 1;
         } else if (strcmp(argv[i], "--model-path") == 0 && i + 1 < argc) {
             config->model_path = argv[++i];
+        } else if (strcmp(argv[i], "--past-model-path") == 0 && i + 1 < argc) {
+            config->past_model_path = argv[++i];
+        } else if (strcmp(argv[i], "--p-past") == 0 && i + 1 < argc) {
+            config->p_past = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--p-minmax") == 0 && i + 1 < argc) {
+            config->p_minmax = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--p-random") == 0 && i + 1 < argc) {
+            config->p_random = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--p-idler") == 0 && i + 1 < argc) {
+            config->p_idler = atof(argv[++i]);
         } else if (strcmp(argv[i], "--training-data-output") == 0 && i + 1 < argc) {
             config->training_data_output = argv[++i];
         } else if (strcmp(argv[i], "--num-games") == 0 && i + 1 < argc) {
@@ -53,4 +70,8 @@ void parse_alpha_zero_args(int argc, char* argv[], TrainAlphaZeroConfig* config)
             config->c_puct = atof(argv[++i]);
         }
     }
+    
+    // Calculate p_current implicitly
+    config->p_current = 1.0 - config->p_past - config->p_minmax - config->p_random - config->p_idler;
+    if (config->p_current < 0.0) config->p_current = 0.0;
 }

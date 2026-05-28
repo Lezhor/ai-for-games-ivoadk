@@ -1,0 +1,277 @@
+#!/bin/bash
+
+# Configuration & Defaults
+RESUME_EPOCH=-1
+INSTANCES=4
+TARGET_ROWS=10000
+PAST_EPOCHS=7
+EPOCH_0_ROW_MULTIPLIER=5
+ENABLE_LOG=false
+
+# Multi-Agent Probabilities
+P_PAST=0.08
+P_MINMAX=0.03
+P_RANDOM=0.02
+P_IDLER=0.005
+
+# MCTS Defaults
+MCTS_ITERATIONS=600
+TEMPERATURE=1.0
+C_PUCT=1.414
+
+# Training Defaults
+TRAIN_EPOCHS=100  # Total Alpha Zero cycles
+NN_EPOCHS=10      # Iterations in train.py
+BATCH_SIZE=2048
+LR=0.0002
+
+# Paths
+DATA_DIR="data/train_alpha_zero"
+MODEL_DIR="models/alpha_zero"
+MCTS_BIN="./build/headless-release/train-alpha_zero"
+TRAIN_SCRIPT="models/train/train.py"
+
+# Cleanup function for Ctrl+C
+cleanup() {
+    echo -e "\n\nInterrupted. Killing background processes..."
+    for pid in "${PIDS[@]}"; do
+        kill -9 "$pid" 2>/dev/null
+    done
+    exit 1
+}
+
+trap cleanup SIGINT
+
+# Help
+usage() {
+    echo "Usage: $0 [options]"
+    echo "Options:"
+    echo "  --resume-epoch N       Resume from epoch N (default: -1, bootstrap)"
+    echo "  --instances N          Number of parallel MCTS processes (default: $INSTANCES)"
+    echo "  --target-rows N        Target rows per epoch (default: $TARGET_ROWS)"
+    echo "  --past-epochs N        Number of past epochs to include in training (default: $PAST_EPOCHS)"
+    echo "  --mcts-iterations N    MCTS iterations per move (default: $MCTS_ITERATIONS)"
+    echo "  --temperature F        MCTS temperature (default: $TEMPERATURE)"
+    echo "  --c-puct F             MCTS C-PUCT (default: $C_PUCT)"
+    echo "  --train-epochs N       Total Alpha Zero cycles to run (default: $TRAIN_EPOCHS)"
+    echo "  --nn-epochs N          NN training iterations per cycle (default: $NN_EPOCHS)"
+    echo "  --batch-size N         NN training batch size (default: $BATCH_SIZE)"
+    echo "  --lr F                 NN training learning rate (default: $LR)"
+    echo "  --log                  Enable writing instance logs to $DATA_DIR"
+    echo "  --p-past F             Prob of playing against past version (default: $P_PAST)"
+    echo "  --p-minmax F           Prob of playing against minmax expert (default: $P_MINMAX)"
+    echo "  --p-random F           Prob of playing against random bot (default: $P_RANDOM)"
+    echo "  --p-idler F            Prob of playing against forfeiter (default: $P_IDLER)"
+    exit 1
+}
+
+# Parse Arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --resume-epoch) RESUME_EPOCH="$2"; shift 2 ;;
+        --instances) INSTANCES="$2"; shift 2 ;;
+        --target-rows) TARGET_ROWS="$2"; shift 2 ;;
+        --past-epochs) PAST_EPOCHS="$2"; shift 2 ;;
+        --mcts-iterations) MCTS_ITERATIONS="$2"; shift 2 ;;
+        --temperature) TEMPERATURE="$2"; shift 2 ;;
+        --c-puct) C_PUCT="$2"; shift 2 ;;
+        --train-epochs) TRAIN_EPOCHS="$2"; shift 2 ;;
+        --nn-epochs) NN_EPOCHS="$2"; shift 2 ;;
+        --batch-size) BATCH_SIZE="$2"; shift 2 ;;
+        --lr) LR="$2"; shift 2 ;;
+        --log) ENABLE_LOG=true; shift ;;
+        --p-past) P_PAST="$2"; shift 2 ;;
+        --p-minmax) P_MINMAX="$2"; shift 2 ;;
+        --p-random) P_RANDOM="$2"; shift 2 ;;
+        --p-idler) P_IDLER="$2"; shift 2 ;;
+        -h|--help) usage ;;
+        *) echo "Unknown option: $1"; usage ;;
+    esac
+done
+
+mkdir -p "$DATA_DIR"
+mkdir -p "$MODEL_DIR"
+
+CURRENT_EPOCH=$((RESUME_EPOCH + 1))
+END_EPOCH=$((CURRENT_EPOCH + TRAIN_EPOCHS))
+
+while [ $CURRENT_EPOCH -lt $END_EPOCH ]; do
+    EPOCH_STR=$(printf "%02d" $CURRENT_EPOCH)
+    echo "=== Starting Epoch $EPOCH_STR ==="
+
+    # Determine target rows for this epoch
+    CALC_TARGET_ROWS=$TARGET_ROWS
+    if [ $CURRENT_EPOCH -eq 0 ]; then
+        CALC_TARGET_ROWS=$((TARGET_ROWS * EPOCH_0_ROW_MULTIPLIER))
+    fi
+
+    # Launch MCTS instances
+    PIDS=()
+    FILES=()
+    for i in $(seq 0 $((INSTANCES - 1))); do
+        INSTANCE_STR=$(printf "%02d" $i)
+        OUTPUT_FILE="$DATA_DIR/epoch$EPOCH_STR.$INSTANCE_STR.csv"
+        FILES+=("$OUTPUT_FILE")
+
+        # Build command
+        CMD=("$MCTS_BIN" "--training-data-output" "$OUTPUT_FILE" "--mcts-iterations" "$MCTS_ITERATIONS" "--temperature" "$TEMPERATURE" "--c-puct" "$C_PUCT" "--num-games" "-1" "--p-past" "$P_PAST" "--p-minmax" "$P_MINMAX" "--p-random" "$P_RANDOM" "--p-idler" "$P_IDLER")
+
+        if [ $CURRENT_EPOCH -gt 0 ]; then
+            PREV_EPOCH_STR=$(printf "%02d" $((CURRENT_EPOCH - 1)))
+            CMD+=("--use-nn" "--model-path" "$MODEL_DIR/epoch$PREV_EPOCH_STR.bin")
+
+            # Dynamic Past Model: use epoch from 3 cycles ago, or epoch 0
+            PAST_VAL=$((CURRENT_EPOCH - 3))
+            if [ $PAST_VAL -lt 0 ]; then PAST_VAL=0; fi
+            PAST_STR=$(printf "%02d" $PAST_VAL)
+            if [ -f "$MODEL_DIR/epoch$PAST_STR.bin" ]; then
+                CMD+=("--past-model-path" "$MODEL_DIR/epoch$PAST_STR.bin")
+            fi
+        fi
+
+        # Run in background
+        LOG_TARGET="/dev/null"
+        if [ "$ENABLE_LOG" = true ]; then
+            LOG_TARGET="$DATA_DIR/instance_$INSTANCE_STR.log"
+        fi
+
+        "${CMD[@]}" > "$LOG_TARGET" 2>&1 &
+        PIDS+=($!)
+    done
+
+    START_TIME=$(date +%s)
+
+    # Progress Bar Monitoring
+    # Pre-allocate space for progress bars to avoid overwriting terminal history
+    for ((i=0; i<INSTANCES+1; i++)); do echo ""; done
+
+    while true; do
+        TOTAL_ROWS=0
+        ROWS_PER_INSTANCE=()
+
+        for f in "${FILES[@]}"; do
+            if [ -f "$f" ]; then
+                R=$(wc -l < "$f" | tr -d ' ')
+            else
+                R=0
+            fi
+            ROWS_PER_INSTANCE+=($R)
+            TOTAL_ROWS=$((TOTAL_ROWS + R))
+        done
+
+        # Move cursor back to the top of the progress bar block
+        echo -ne "\033[$((INSTANCES+1))A"
+
+        for i in "${!ROWS_PER_INSTANCE[@]}"; do
+            R=${ROWS_PER_INSTANCE[$i]}
+            INSTANCE_TARGET=$((CALC_TARGET_ROWS / INSTANCES))
+            PERCENT=$((R * 100 / INSTANCE_TARGET))
+            if [ $PERCENT -gt 100 ]; then PERCENT=100; fi
+
+            # Simple bar
+            BAR_LEN=30
+            FILLED=$((PERCENT * BAR_LEN / 100))
+            BAR=$(printf "%${FILLED}s" | tr ' ' '#')
+            EMPTY=$(printf "%$((BAR_LEN - FILLED))s" | tr ' ' '-')
+
+            # \r returns to start of line, \033[K clears the existing line
+            printf "\r\033[KInstance %02d: [%s%s] %d%% (%d rows)\n" $i "$BAR" "$EMPTY" $PERCENT $R
+        done
+
+        TOTAL_PERCENT=$((TOTAL_ROWS * 100 / CALC_TARGET_ROWS))
+        if [ $TOTAL_PERCENT -gt 100 ]; then TOTAL_PERCENT=100; fi
+        BAR_LEN=30
+        FILLED=$((TOTAL_PERCENT * BAR_LEN / 100))
+        BAR=$(printf "%${FILLED}s" | tr ' ' '=')
+        EMPTY=$(printf "%$((BAR_LEN - FILLED))s" | tr ' ' '-')
+        printf "\r\033[KTotal:       [%s%s] %d%% (%d/%d rows)\n" "$BAR" "$EMPTY" $TOTAL_PERCENT $TOTAL_ROWS $CALC_TARGET_ROWS
+
+        if [ $TOTAL_ROWS -ge $CALC_TARGET_ROWS ]; then
+            break
+        fi
+        sleep 10
+    done
+
+    # Stop instances
+    echo "Target reached. Stopping MCTS processes..."
+    for pid in "${PIDS[@]}"; do
+        kill -9 "$pid" 2>/dev/null
+    done
+    wait "${PIDS[@]}" 2>/dev/null
+
+    # Compact and Clean CSV files
+    FINAL_CSV="$DATA_DIR/epoch$EPOCH_STR.csv"
+    echo "Compacting and cleaning data into $FINAL_CSV..."
+
+    # Clear final file if it exists
+    > "$FINAL_CSV"
+
+    for f in "${FILES[@]}"; do
+        if [ -f "$f" ]; then
+            # Clean each file:
+            # 1. Remove potentially partial last line (if process was killed)
+            # 2. Use awk to ensure each line has exactly 105 columns (82 features + 20 policy + 3 value)
+            # 3. Append to the final epoch CSV
+            sed -i '' '$ d' "$f"
+            awk -F',' 'NF==105' "$f" >> "$FINAL_CSV"
+            # Optional: Remove the instance files to save space
+            rm "$f"
+        fi
+    done
+
+    END_TIME=$(date +%s)
+    DURATION=$(( (END_TIME - START_TIME) / 60 ))
+    # Re-calculate total rows after cleaning
+    CLEAN_ROWS=$(wc -l < "$FINAL_CSV" | tr -d ' ')
+    echo "$CLEAN_ROWS rows of clean data generated for epoch $EPOCH_STR in $DURATION minutes."
+
+    # NN Training
+    echo "Starting NN training for epoch $EPOCH_STR..."
+
+    DATA_PATHS=()
+    for ((e=0; e<=CURRENT_EPOCH; e++)); do
+        if [ $e -ge $((CURRENT_EPOCH - PAST_EPOCHS)) ]; then
+            E_STR=$(printf "%02d" $e)
+            # Only need to look for the single compacted file now
+            if [ -f "$DATA_DIR/epoch$E_STR.csv" ]; then
+                DATA_PATHS+=("$DATA_DIR/epoch$E_STR.csv")
+            elif [ -f "$DATA_DIR/epoch$e.csv" ]; then
+                DATA_PATHS+=("$DATA_DIR/epoch$e.csv")
+            fi
+        fi
+    done
+
+    if [ ${#DATA_PATHS[@]} -eq 0 ]; then
+        echo "No data files found for epoch $EPOCH_STR. Exiting."
+        exit 1
+    fi
+
+    # Use the python executable from the .env virtual environment if it exists, else fallback to python3
+    PYTHON_EXEC="./.env/bin/python3"
+    if [ ! -f "$PYTHON_EXEC" ]; then
+        PYTHON_EXEC="python3"
+    fi
+
+    TRAIN_CMD=($PYTHON_EXEC "$TRAIN_SCRIPT" \
+        --data_paths "${DATA_PATHS[@]}" \
+        --output_model "$MODEL_DIR/epoch$EPOCH_STR.bin" \
+        --epochs "$NN_EPOCHS" \
+        --batch_size "$BATCH_SIZE" \
+        --lr "$LR")
+
+    if [ $CURRENT_EPOCH -gt 0 ]; then
+        PREV_EPOCH_STR=$(printf "%02d" $((CURRENT_EPOCH - 1)))
+        TRAIN_CMD+=("--input_model" "$MODEL_DIR/epoch$PREV_EPOCH_STR.bin")
+    fi
+
+    "${TRAIN_CMD[@]}"
+
+    if [ $? -ne 0 ]; then
+        echo "Training failed for epoch $EPOCH_STR. Exiting."
+        exit 1
+    fi
+
+    echo "Finished epoch $EPOCH_STR. Model saved to $MODEL_DIR/epoch$EPOCH_STR.bin"
+
+    CURRENT_EPOCH=$((CURRENT_EPOCH + 1))
+done
